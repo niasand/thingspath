@@ -32,11 +32,13 @@ fun ItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // Thumbnail image
             Box(
                 modifier = Modifier
+                    .padding(start = 16.dp)
                     .size(80.dp)
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center
