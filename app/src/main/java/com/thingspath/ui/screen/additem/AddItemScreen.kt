@@ -109,6 +109,8 @@ fun AddItemScreen(
                 onRemoveTag = { viewModel.removeTag(it) },
                 onImagePickerClick = { imagePickerLauncher.launch("image/*") },
                 onImageDeleteClick = { viewModel.onImagePathChange(null) },
+                onAiInputChange = { viewModel.onAiInputChange(it) },
+                onParseAiInput = { viewModel.parseAiInput() },
                 onSave = {
                     viewModel.saveItem(
                         onSuccess = {
@@ -142,6 +144,8 @@ fun AddItemForm(
     onRemoveTag: (String) -> Unit,
     onImagePickerClick: () -> Unit,
     onImageDeleteClick: () -> Unit,
+    onAiInputChange: (String) -> Unit,
+    onParseAiInput: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
@@ -165,6 +169,50 @@ fun AddItemForm(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // AI Auto-Fill Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "AI Smart Entry",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                OutlinedTextField(
+                    value = state.aiInputText,
+                    onValueChange = onAiInputChange,
+                    label = { Text("Paste text to auto-fill...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    isError = state.aiError != null,
+                    supportingText = state.aiError?.let { { Text(it) } }
+                )
+                Button(
+                    onClick = onParseAiInput,
+                    modifier = Modifier.align(Alignment.End),
+                    enabled = !state.isAiLoading && state.aiInputText.isNotBlank()
+                ) {
+                    if (state.isAiLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Extract Info")
+                    }
+                }
+            }
+        }
+
         // Image Section
         Box(
             modifier = Modifier

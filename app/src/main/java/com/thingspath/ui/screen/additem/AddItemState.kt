@@ -11,5 +11,8 @@ data class AddItemState(
     val tagInput: String = "",
     val imagePath: String? = null,
     val isLoading: Boolean = false,
-    val nameError: String? = null
+    val nameError: String? = null,
+    val aiInputText: String = "",
+    val isAiLoading: Boolean = false,
+    val aiError: String? = null
 )

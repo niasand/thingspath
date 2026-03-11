@@ -3,6 +3,7 @@ package com.thingspath.ui.screen.additem
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.Item
+import com.thingspath.data.remote.SiliconFlowClient
 import com.thingspath.domain.usecase.AddItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -13,6 +14,8 @@ import javax.inject.Inject
 class AddItemViewModel @Inject constructor(
     private val addItemUseCase: AddItemUseCase
 ) : ViewModel() {
+
+    private val siliconFlowClient = SiliconFlowClient()
 
     private val _state = MutableStateFlow(AddItemState())
     val state: StateFlow<AddItemState> = _state.asStateFlow()
@@ -126,6 +129,65 @@ class AddItemViewModel @Inject constructor(
 
     fun clearForm() {
         _state.value = AddItemState()
+    }
+
+    fun onAiInputChange(value: String) {
+        _state.update { it.copy(aiInputText = value, aiError = null) }
+    }
+
+    fun parseAiInput() {
+        val text = _state.value.aiInputText.trim()
+        if (text.isEmpty()) {
+            _state.update { it.copy(aiError = "Please enter some text first") }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isAiLoading = true, aiError = null) }
+            val result = siliconFlowClient.extractItemInfo(text)
+            
+            result.onSuccess { info ->
+                _state.update { currentState ->
+                    var newState = currentState.copy(isAiLoading = false)
+                    
+                    if (!info.name.isNullOrBlank()) {
+                        newState = newState.copy(name = info.name, nameError = null)
+                    }
+                    if (!info.location.isNullOrBlank()) {
+                        newState = newState.copy(location = info.location)
+                    }
+                    if (!info.purchaseDate.isNullOrBlank()) {
+                        newState = newState.copy(purchaseDate = info.purchaseDate)
+                        // Trigger usage days calculation
+                        calculateUsageDays(info.purchaseDate)
+                        // Have to update usageDays again if calculated
+                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                        try {
+                            val purchaseDate = sdf.parse(info.purchaseDate)
+                            if (purchaseDate != null) {
+                                val diff = System.currentTimeMillis() - purchaseDate.time
+                                val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+                                if (days >= 0) {
+                                    newState = newState.copy(usageDays = days.toString())
+                                }
+                            }
+                        } catch (e: Exception) {}
+                    }
+                    if (info.purchasePrice != null && info.purchasePrice > 0) {
+                        newState = newState.copy(purchasePrice = info.purchasePrice.toString())
+                    }
+                    
+                    newState
+                }
+            }.onFailure { error ->
+                _state.update { 
+                    it.copy(
+                        isAiLoading = false,
+                        aiError = error.message ?: "Failed to parse text. Please try again."
+                    ) 
+                }
+            }
+        }
     }
 
     private fun parsePurchaseDate(dateString: String): Long? {
