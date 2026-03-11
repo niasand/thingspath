@@ -21,7 +21,9 @@ android {
         if (localPropertiesFile.exists()) {
             localProperties.load(java.io.FileInputStream(localPropertiesFile))
         }
-        val apiKey = localProperties.getProperty("SILICON_FLOW_API_KEY") ?: ""
+        val apiKey = localProperties.getProperty("SILICON_FLOW_API_KEY") 
+            ?: System.getenv("SILICON_FLOW_API_KEY") 
+            ?: ""
         buildConfigField("String", "SILICON_FLOW_API_KEY", "\"$apiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

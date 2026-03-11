@@ -33,6 +33,8 @@ jobs:
 
       # ── Build unsigned (debug) APK ──
       - name: Build debug APK
+        env:
+          SILICON_FLOW_API_KEY: ${{ secrets.SILICON_FLOW_API_KEY }}
         run: ./gradlew assembleDebug
 
       - name: Upload unsigned APK artifact
@@ -54,6 +56,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SILICON_FLOW_API_KEY: ${{ secrets.SILICON_FLOW_API_KEY }}
         run: ./gradlew assembleRelease
 
       - name: Upload signed APK artifact
