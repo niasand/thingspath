@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -16,10 +19,10 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        val localProperties = java.util.Properties()
+        val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
-            localProperties.load(java.io.FileInputStream(localPropertiesFile))
+            localProperties.load(FileInputStream(localPropertiesFile))
         }
         val apiKey = localProperties.getProperty("SILICON_FLOW_API_KEY") 
             ?: System.getenv("SILICON_FLOW_API_KEY") 
