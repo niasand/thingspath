@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Clear
 fun HomeScreen(
     viewModel: HomeViewModel,
     onAddItemClick: () -> Unit,
+    onAddAIItemClick: () -> Unit,
     onItemClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -47,6 +48,8 @@ fun HomeScreen(
     ) { uri ->
         uri?.let { viewModel.importData(it) }
     }
+
+    var showAddMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -104,11 +107,32 @@ fun HomeScreen(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddItemClick) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Item"
-                )
+            Box {
+                FloatingActionButton(onClick = { showAddMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Item menu"
+                    )
+                }
+                DropdownMenu(
+                    expanded = showAddMenu,
+                    onDismissRequest = { showAddMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("AI 模式添加 (AI Mode)") },
+                        onClick = {
+                            showAddMenu = false
+                            onAddAIItemClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("经典模式添加 (Classic Mode)") },
+                        onClick = {
+                            showAddMenu = false
+                            onAddItemClick()
+                        }
+                    )
+                }
             }
         },
         modifier = modifier

@@ -24,6 +24,9 @@ fun AppNavigation(
                 onAddItemClick = {
                     navController.navigate(Screen.AddItem.route)
                 },
+                onAddAIItemClick = {
+                    navController.navigate(Screen.AIAdd.route)
+                },
                 onItemClick = { itemId ->
                     navController.navigate(Screen.ItemDetail.createRoute(itemId))
                 }
@@ -32,6 +35,15 @@ fun AppNavigation(
 
         composable(route = Screen.AddItem.route) {
             AddItemScreen(
+                viewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.AIAdd.route) {
+            com.thingspath.ui.screen.aiadd.AIAddScreen(
                 viewModel = androidx.hilt.navigation.compose.hiltViewModel(),
                 onBack = {
                     navController.popBackStack()
