@@ -54,13 +54,15 @@ class SiliconFlowClient {
             ${text}
         """.trimIndent()
 
-        val requestBodyMap = mapOf(
+        val requestBodyMap = mutableMapOf(
             "model" to "Pro/deepseek-ai/DeepSeek-R1",
             "messages" to listOf(
-                mapOf("role" to "system", "content" to "你是一个严格遵循 JSON 输出格式的助手，不要输出除了 JSON 之外的任何思考过程文本或前后缀文字。"),
+                mapOf("role" to "system", "content" to "你是一个专门从文本中提取物品信息的助手。你必须始终返回一个合法的 JSON 对象。"),
                 mapOf("role" to "user", "content" to prompt)
             ),
-            "temperature" to 0.1 // Use low temperature for deterministic parsing extraction
+            "response_format" to mapOf("type" to "json_object"),
+            "temperature" to 0.0,
+            "max_tokens" to 512
         )
 
         val jsonBody = gson.toJson(requestBodyMap)
