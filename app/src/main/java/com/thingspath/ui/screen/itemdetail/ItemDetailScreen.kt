@@ -152,9 +152,9 @@ fun ItemDetailScreen(
                 onImageDeleteClick = { viewModel.onImagePathChange(null) },
                 onImageClick = { viewModel.showFullScreenImage() },
                 modifier = Modifier
-                    .fillMaxSize()
+                    .consumeWindowInsets(paddingValues)
                     .padding(paddingValues)
-                    .imePadding() // Add imePadding here
+                    .imePadding()
                     .verticalScroll(scrollState)
             )
         }
