@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -21,9 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.thingspath.data.model.Item
 import com.thingspath.ui.component.*
 
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Clear
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,21 +35,6 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
-    var showMenu by remember { mutableStateOf(false) }
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        uri?.let { viewModel.exportData(it) }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let { viewModel.importData(it) }
-    }
-
-    var showAddMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -66,33 +49,12 @@ fun HomeScreen(
                         onToggleView = { viewModel.toggleView() },
                         modifier = Modifier.padding(end = 8.dp)
                     )
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Export Backup") },
-                            onClick = {
-                                showMenu = false
-                                exportLauncher.launch("thingspath_backup.json")
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import Backup") },
-                            onClick = {
-                                showMenu = false
-                                importLauncher.launch(arrayOf("application/json"))
-                            }
-                        )
-                    }
                 }
             )
         },
         bottomBar = {
-            if (state.exportSuccess || state.importSuccess || state.errorMessage != null) {
+            val errorMessage = state.errorMessage
+            if (errorMessage != null) {
                 Snackbar(
                     action = {
                         TextButton(onClick = { viewModel.dismissMessage() }) {
@@ -101,17 +63,12 @@ fun HomeScreen(
                     },
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Text(
-                        when {
-                            state.exportSuccess -> "Export successful"
-                            state.importSuccess -> "Import successful"
-                            else -> state.errorMessage ?: "Unknown error"
-                        }
-                    )
+                    Text(errorMessage)
                 }
             }
         },
         floatingActionButton = {
+            var showAddMenu by remember { mutableStateOf(false) }
             Box {
                 FloatingActionButton(onClick = { showAddMenu = true }) {
                     Icon(
@@ -124,14 +81,16 @@ fun HomeScreen(
                     onDismissRequest = { showAddMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("AI 模式添加 (AI Mode)") },
+                        text = { Text("AI 智能解析 (AI Mode)") },
+                        leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
                         onClick = {
                             showAddMenu = false
                             onAddAIItemClick()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("经典模式添加 (Classic Mode)") },
+                        text = { Text("普通模式添加 (Classic)") },
+                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                         onClick = {
                             showAddMenu = false
                             onAddItemClick()
@@ -224,7 +183,7 @@ fun StatisticsHeader(
                 )
             }
             
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier
                     .height(40.dp)
                     .width(1.dp)

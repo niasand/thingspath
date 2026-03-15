@@ -41,7 +41,10 @@ class AIAddViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             val apiKey = settingsRepository.apiKeyFlow.first()
-            val result = siliconFlowClient.extractItemInfo(text, apiKey)
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val currentDate = sdf.format(java.util.Date())
+            
+            val result = siliconFlowClient.extractItemInfo(text, apiKey, currentDate)
             
             result.onSuccess { info ->
                 _state.update { it.copy(isLoading = false, extractedInfo = info) }
@@ -50,7 +53,7 @@ class AIAddViewModel @Inject constructor(
                 _state.update { 
                     it.copy(
                         isLoading = false,
-                        error = error.message ?: "解析失败，请重试"
+                        error = error.message ?: "解析失败，请检查 API Key"
                     ) 
                 }
             }

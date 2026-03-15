@@ -54,6 +54,7 @@ fun AppNavigation(
             )
         }
 
+
         composable(route = Screen.AIAdd.route) {
             val addItemViewModel: com.thingspath.ui.screen.additem.AddItemViewModel = androidx.hilt.navigation.compose.hiltViewModel()
             com.thingspath.ui.screen.aiadd.AIAddScreen(
@@ -62,14 +63,21 @@ fun AppNavigation(
                     navController.popBackStack()
                 },
                 onResult = { name, date, location, price ->
-                    addItemViewModel.prefillFromAi(name, date, location, price)
-                    navController.navigate(Screen.AddItem.route) {
-                        popUpTo(Screen.Home.route)
-                    }
+                    addItemViewModel.prefillFromAi(
+                        name = name,
+                        date = date,
+                        location = location,
+                        price = price,
+                        autoSave = true,
+                        onSuccess = {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                    )
                 }
             )
         }
-
         composable(
             route = Screen.ItemDetail.route,
             arguments = listOf(

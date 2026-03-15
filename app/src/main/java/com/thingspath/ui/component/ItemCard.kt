@@ -51,20 +51,11 @@ fun ItemCard(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Item",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    }
+                    ItemAvatarPlaceholder(
+                        name = item.name,
+                        modifier = Modifier.fillMaxSize(),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 

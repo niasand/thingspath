@@ -84,19 +84,50 @@ class ItemDetailViewModel @Inject constructor(
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
             val purchaseDate = sdf.parse(purchaseDateStr)
             if (purchaseDate != null) {
-                val diff = System.currentTimeMillis() - purchaseDate.time
+                val today = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                val purchaseCal = java.util.Calendar.getInstance().apply {
+                    time = purchaseDate
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                
+                val diff = today.timeInMillis - purchaseCal.timeInMillis
                 val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
                 if (days >= 0) {
                     _state.update { it.copy(usageDays = days.toString()) }
                 }
             }
-        } catch (e: Exception) {
-            // Ignore parse errors while typing
-        }
+        } catch (e: Exception) {}
     }
 
     fun onUsageDaysChange(value: String) {
-        _state.update { it.copy(usageDays = value.filter { it.isDigit() }) }
+        val daysStr = value.filter { it.isDigit() }
+        val days = daysStr.toLongOrNull()
+        
+        _state.update { currentState ->
+            var newState = currentState.copy(usageDays = daysStr)
+            if (days != null) {
+                try {
+                    val calendar = java.util.Calendar.getInstance().apply {
+                        set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                        add(java.util.Calendar.DAY_OF_YEAR, -days.toInt())
+                    }
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    newState = newState.copy(purchaseDate = sdf.format(calendar.time))
+                } catch (e: Exception) {}
+            }
+            newState
+        }
     }
 
     fun onNoteChange(value: String) {

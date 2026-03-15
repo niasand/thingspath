@@ -49,23 +49,11 @@ fun ItemGridItem(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = item.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.secondary,
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 1,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                        }
-                    }
+                    ItemAvatarPlaceholder(
+                        name = item.name,
+                        modifier = Modifier.fillMaxSize(),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
 

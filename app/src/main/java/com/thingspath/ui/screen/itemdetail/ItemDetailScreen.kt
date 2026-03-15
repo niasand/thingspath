@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.thingspath.ui.component.ItemAvatarPlaceholder
 import com.thingspath.ui.component.DeleteConfirmationDialog
 import android.app.DatePickerDialog
 import android.widget.DatePicker
@@ -34,7 +35,8 @@ import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +69,7 @@ fun ItemDetailScreen(
     }
 
     Scaffold(
-        modifier = modifier.imePadding().nestedScroll(scrollBehavior.nestedScrollConnection), // Add imePadding
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection), // Remove imePadding from here
         topBar = {
             TopAppBar(
                 title = { Text("Item Details") },
@@ -152,6 +154,7 @@ fun ItemDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .imePadding() // Add imePadding here
                     .verticalScroll(scrollState)
             )
         }
@@ -211,12 +214,14 @@ fun ItemDetailContent(
         ) {
             if (state.isEditing) {
                 EditableImageView(
+                    itemName = state.name,
                     imagePath = state.imagePath,
                     onImagePickerClick = onImagePickerClick,
                     onImageDeleteClick = onImageDeleteClick
                 )
             } else {
                 ItemImageDisplay(
+                    itemName = state.name,
                     imagePath = state.imagePath,
                     onClick = onImageClick
                 )
@@ -244,6 +249,7 @@ fun ItemDetailContent(
 
 @Composable
 fun EditableImageView(
+    itemName: String,
     imagePath: String?,
     onImagePickerClick: () -> Unit,
     onImageDeleteClick: () -> Unit
@@ -261,19 +267,10 @@ fun EditableImageView(
                 contentScale = ContentScale.Crop
             )
         } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(MaterialTheme.shapes.medium),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AddPhotoAlternate,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.outline
-                )
-            }
+            ItemAvatarPlaceholder(
+                name = itemName,
+                modifier = Modifier.fillMaxSize()
+            )
         }
 
         // Action buttons overlay
@@ -315,6 +312,7 @@ fun EditableImageView(
 
 @Composable
 fun ItemImageDisplay(
+    itemName: String,
     imagePath: String?,
     onClick: () -> Unit = {}
 ) {
@@ -332,18 +330,10 @@ fun ItemImageDisplay(
                 contentScale = ContentScale.Crop
             )
         } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(MaterialTheme.shapes.medium),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No image",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
+            ItemAvatarPlaceholder(
+                name = itemName,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -625,6 +615,8 @@ fun DetailField(
         )
     }
 }
+
+
 
 private fun formatDate(timestamp: Long): String {
     val date = Date(timestamp)

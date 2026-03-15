@@ -3,6 +3,7 @@ package com.thingspath.ui.screen.additem
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.Item
+import com.thingspath.data.model.ExtractedItemInfo
 import com.thingspath.data.remote.SiliconFlowClient
 import com.thingspath.data.local.repository.SettingsRepository
 import com.thingspath.domain.usecase.AddItemUseCase
@@ -49,19 +50,50 @@ class AddItemViewModel @Inject constructor(
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
             val purchaseDate = sdf.parse(purchaseDateStr)
             if (purchaseDate != null) {
-                val diff = System.currentTimeMillis() - purchaseDate.time
+                val today = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                val purchaseCal = java.util.Calendar.getInstance().apply {
+                    time = purchaseDate
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                
+                val diff = today.timeInMillis - purchaseCal.timeInMillis
                 val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
                 if (days >= 0) {
                     _state.update { it.copy(usageDays = days.toString()) }
                 }
             }
-        } catch (e: Exception) {
-            // Ignore parse errors while typing
-        }
+        } catch (e: Exception) {}
     }
 
     fun onUsageDaysChange(value: String) {
-        _state.update { it.copy(usageDays = value.filter { it.isDigit() }) }
+        val daysStr = value.filter { it.isDigit() }
+        val days = daysStr.toLongOrNull()
+        
+        _state.update { currentState ->
+            var newState = currentState.copy(usageDays = daysStr)
+            if (days != null) {
+                try {
+                    val calendar = java.util.Calendar.getInstance().apply {
+                        set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                        add(java.util.Calendar.DAY_OF_YEAR, -days.toInt())
+                    }
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    newState = newState.copy(purchaseDate = sdf.format(calendar.time))
+                } catch (e: Exception) {}
+            }
+            newState
+        }
     }
 
     fun onNoteChange(value: String) {
@@ -133,67 +165,14 @@ class AddItemViewModel @Inject constructor(
         _state.value = AddItemState()
     }
 
-    fun onAiInputChange(value: String) {
-        _state.update { it.copy(aiInputText = value, aiError = null) }
-    }
-
-    fun parseAiInput() {
-        val text = _state.value.aiInputText.trim()
-        if (text.isEmpty()) {
-            _state.update { it.copy(aiError = "Please enter some text first") }
-            return
-        }
-
-        viewModelScope.launch {
-            _state.update { it.copy(isAiLoading = true, aiError = null) }
-            val apiKey = settingsRepository.apiKeyFlow.first()
-            val result = siliconFlowClient.extractItemInfo(text, apiKey)
-            
-            result.onSuccess { info ->
-                _state.update { currentState ->
-                    var newState = currentState.copy(isAiLoading = false)
-                    
-                    if (!info.name.isNullOrBlank()) {
-                        newState = newState.copy(name = info.name, nameError = null)
-                    }
-                    if (!info.location.isNullOrBlank()) {
-                        newState = newState.copy(location = info.location)
-                    }
-                    if (!info.purchaseDate.isNullOrBlank()) {
-                        newState = newState.copy(purchaseDate = info.purchaseDate)
-                        // Trigger usage days calculation
-                        calculateUsageDays(info.purchaseDate)
-                        // Have to update usageDays again if calculated
-                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                        try {
-                            val purchaseDate = sdf.parse(info.purchaseDate)
-                            if (purchaseDate != null) {
-                                val diff = System.currentTimeMillis() - purchaseDate.time
-                                val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
-                                if (days >= 0) {
-                                    newState = newState.copy(usageDays = days.toString())
-                                }
-                            }
-                        } catch (e: Exception) {}
-                    }
-                    if (info.purchasePrice != null && info.purchasePrice > 0) {
-                        newState = newState.copy(purchasePrice = info.purchasePrice.toString())
-                    }
-                    
-                    newState
-                }
-            }.onFailure { error ->
-                _state.update { 
-                    it.copy(
-                        isAiLoading = false,
-                        aiError = error.message ?: "Failed to parse text. Please try again."
-                    ) 
-                }
-            }
-        }
-    }
-
-    fun prefillFromAi(name: String, date: String?, location: String?, price: Double?) {
+    fun prefillFromAi(
+        name: String, 
+        date: String?, 
+        location: String?, 
+        price: Double?,
+        autoSave: Boolean = false,
+        onSuccess: () -> Unit = {}
+    ) {
         _state.update { currentState ->
             var newState = currentState.copy(
                 name = name,
@@ -201,8 +180,7 @@ class AddItemViewModel @Inject constructor(
             )
             if (!date.isNullOrBlank()) {
                 newState = newState.copy(purchaseDate = date)
-                calculateUsageDays(date)
-                // Re-update state with calculated usage days
+                // Re-calculate usage days
                 val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                 try {
                     val purchaseDate = sdf.parse(date)
@@ -222,6 +200,47 @@ class AddItemViewModel @Inject constructor(
                 newState = newState.copy(purchasePrice = price.toString())
             }
             newState
+        }
+
+        if (autoSave && validateForm()) {
+            saveItem(
+                onSuccess = onSuccess,
+                onError = { /* Error handled via state? or just silent for auto-save */ }
+            )
+        }
+    }
+
+    fun extractInfo() {
+        val text = _state.value.note.trim()
+        if (text.isEmpty()) {
+            _state.update { it.copy(nameError = "请在备注中输入描述文字以便 AI 解析") }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            val apiKey = settingsRepository.apiKeyFlow.first()
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val currentDate = sdf.format(java.util.Date())
+            
+            val result = siliconFlowClient.extractItemInfo(text, apiKey, currentDate)
+            
+            result.onSuccess { info ->
+                _state.update { it.copy(isLoading = false) }
+                prefillFromAi(
+                    info.name ?: "",
+                    info.purchaseDate,
+                    info.location,
+                    info.purchasePrice
+                )
+            }.onFailure { error ->
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        nameError = error.message ?: "解析失败，请检查 API Key"
+                    ) 
+                }
+            }
         }
     }
 

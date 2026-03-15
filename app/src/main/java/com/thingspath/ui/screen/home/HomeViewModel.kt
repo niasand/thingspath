@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-import com.thingspath.data.local.repository.FileRepository
 import com.thingspath.data.local.repository.ItemRepository
 import android.net.Uri
 
@@ -25,9 +24,6 @@ import kotlinx.coroutines.delay
 class HomeViewModel @Inject constructor(
     private val getItemsUseCase: GetItemsUseCase,
     private val deleteItemUseCase: DeleteItemUseCase,
-    private val exportItemsUseCase: ExportItemsUseCase,
-    private val importItemsUseCase: ImportItemsUseCase,
-    private val fileRepository: FileRepository,
     private val itemRepository: ItemRepository
 ) : ViewModel() {
 
@@ -97,37 +93,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun exportData(uri: Uri) {
-        viewModelScope.launch {
-            try {
-                _state.update { it.copy(isExporting = true, exportSuccess = false, errorMessage = null) }
-                val jsonString = exportItemsUseCase()
-                fileRepository.writeString(uri, jsonString)
-                _state.update { it.copy(isExporting = false, exportSuccess = true) }
-                delay(1000)
-                dismissMessage()
-            } catch (e: Exception) {
-                _state.update { it.copy(isExporting = false, errorMessage = e.message ?: "Export failed") }
-            }
-        }
-    }
-
-    fun importData(uri: Uri) {
-        viewModelScope.launch {
-            try {
-                _state.update { it.copy(isImporting = true, importSuccess = false, errorMessage = null) }
-                val jsonString = fileRepository.readString(uri)
-                importItemsUseCase(jsonString)
-                _state.update { it.copy(isImporting = false, importSuccess = true) }
-                delay(1000)
-                dismissMessage()
-            } catch (e: Exception) {
-                _state.update { it.copy(isImporting = false, errorMessage = e.message ?: "Import failed") }
-            }
-        }
-    }
-
     fun dismissMessage() {
-        _state.update { it.copy(exportSuccess = false, importSuccess = false, errorMessage = null) }
+        _state.update { it.copy(errorMessage = null) }
     }
 }

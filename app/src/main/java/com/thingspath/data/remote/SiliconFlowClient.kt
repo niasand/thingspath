@@ -25,13 +25,17 @@ class SiliconFlowClient {
         })
         .build()
 
-    suspend fun extractItemInfo(text: String, apiKey: String): Result<ExtractedItemInfo> = withContext(Dispatchers.IO) {
+    suspend fun extractItemInfo(text: String, apiKey: String, currentDate: String): Result<ExtractedItemInfo> = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
             return@withContext Result.failure(Exception("SiliconFlow API Key not configured. Please add it in the app settings."))
         }
 
         val prompt = """
             你是一个帮我记录物品的智能助手。请从下面这段用户输入的文字中，提取物品的相关信息。
+            
+            当前日期是：${currentDate}
+            请结合当前日期解析相对日期词汇（如“昨天”指 ${currentDate} 的前一天，“上周”等）。
+            
             必须提取以下 4 个字段的信息（如果没有提供则留空或传 null）：
             1. name (物品名称，必须有)
             2. purchaseDate (购买日期，必须格式化为 YYYY-MM-DD，只要日期，不要时间)
