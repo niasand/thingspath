@@ -43,10 +43,17 @@ fun AppNavigation(
         }
 
         composable(route = Screen.AIAdd.route) {
+            val addItemViewModel: com.thingspath.ui.screen.additem.AddItemViewModel = androidx.hilt.navigation.compose.hiltViewModel()
             com.thingspath.ui.screen.aiadd.AIAddScreen(
                 viewModel = androidx.hilt.navigation.compose.hiltViewModel(),
                 onBack = {
                     navController.popBackStack()
+                },
+                onResult = { name, date, location, price ->
+                    addItemViewModel.prefillFromAi(name, date, location, price)
+                    navController.navigate(Screen.AddItem.route) {
+                        popUpTo(Screen.Home.route)
+                    }
                 }
             )
         }

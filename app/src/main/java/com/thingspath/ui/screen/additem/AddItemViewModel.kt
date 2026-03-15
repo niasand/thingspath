@@ -190,6 +190,38 @@ class AddItemViewModel @Inject constructor(
         }
     }
 
+    fun prefillFromAi(name: String, date: String?, location: String?, price: Double?) {
+        _state.update { currentState ->
+            var newState = currentState.copy(
+                name = name,
+                nameError = null
+            )
+            if (!date.isNullOrBlank()) {
+                newState = newState.copy(purchaseDate = date)
+                calculateUsageDays(date)
+                // Re-update state with calculated usage days
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                try {
+                    val purchaseDate = sdf.parse(date)
+                    if (purchaseDate != null) {
+                        val diff = System.currentTimeMillis() - purchaseDate.time
+                        val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+                        if (days >= 0) {
+                            newState = newState.copy(usageDays = days.toString())
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+            if (!location.isNullOrBlank()) {
+                newState = newState.copy(location = location)
+            }
+            if (price != null && price > 0) {
+                newState = newState.copy(purchasePrice = price.toString())
+            }
+            newState
+        }
+    }
+
     private fun parsePurchaseDate(dateString: String): Long? {
         if (dateString.isBlank()) return null
         return try {
