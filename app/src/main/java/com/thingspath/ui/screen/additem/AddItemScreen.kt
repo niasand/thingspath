@@ -125,9 +125,8 @@ fun AddItemScreen(
                 },
                 onCancel = onBack,
                 modifier = Modifier
-                    .consumeWindowInsets(paddingValues)
-                    .padding(paddingValues)
-                    .imePadding()
+                    .padding(top = paddingValues.calculateTopPadding())
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                     .verticalScroll(scrollState)
             )
         }
