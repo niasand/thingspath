@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.ExtractedItemInfo
 import com.thingspath.data.remote.SiliconFlowClient
+import com.thingspath.data.local.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,9 +19,10 @@ data class AIAddState(
 )
 
 @HiltViewModel
-class AIAddViewModel @Inject constructor() : ViewModel() {
-
-    private val siliconFlowClient = SiliconFlowClient()
+class AIAddViewModel @Inject constructor(
+    private val siliconFlowClient: SiliconFlowClient,
+    private val settingsRepository: SettingsRepository
+) : ViewModel() {
 
     private val _state = MutableStateFlow(AIAddState())
     val state: StateFlow<AIAddState> = _state.asStateFlow()
@@ -37,7 +40,8 @@ class AIAddViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            val result = siliconFlowClient.extractItemInfo(text)
+            val apiKey = settingsRepository.apiKeyFlow.first()
+            val result = siliconFlowClient.extractItemInfo(text, apiKey)
             
             result.onSuccess { info ->
                 _state.update { it.copy(isLoading = false, extractedInfo = info) }

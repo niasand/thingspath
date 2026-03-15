@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -31,6 +32,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onAddItemClick: () -> Unit,
     onAddAIItemClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onItemClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -56,6 +58,9 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("All Items") },
                 actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
                     ViewToggleButtons(
                         isGridView = state.isGridView,
                         onToggleView = { viewModel.toggleView() },

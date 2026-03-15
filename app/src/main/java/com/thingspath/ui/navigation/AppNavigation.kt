@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.thingspath.ui.screen.additem.AddItemScreen
 import com.thingspath.ui.screen.home.HomeScreen
+import com.thingspath.ui.screen.settings.SettingsScreen
 import com.thingspath.ui.screen.itemdetail.ItemDetailScreen
 
 @Composable
@@ -27,8 +28,19 @@ fun AppNavigation(
                 onAddAIItemClick = {
                     navController.navigate(Screen.AIAdd.route)
                 },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                },
                 onItemClick = { itemId ->
                     navController.navigate(Screen.ItemDetail.createRoute(itemId))
+                }
+            )
+        }
+
+        composable(route = Screen.Settings.route) {
+            SettingsScreen(
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }

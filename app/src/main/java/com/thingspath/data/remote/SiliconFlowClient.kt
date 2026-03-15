@@ -1,7 +1,6 @@
 package com.thingspath.data.remote
 
 import com.google.gson.Gson
-import com.thingspath.BuildConfig
 import com.thingspath.data.model.ExtractedItemInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,9 +14,6 @@ import java.util.concurrent.TimeUnit
 class SiliconFlowClient {
 
     private val gson = Gson()
-    
-    // Use the API key from BuildConfig (populated from local.properties)
-    private val apiKey = BuildConfig.SILICON_FLOW_API_KEY
     private val apiUrl = "https://api.siliconflow.cn/v1/chat/completions"
 
     private val client = OkHttpClient.Builder()
@@ -29,9 +25,9 @@ class SiliconFlowClient {
         })
         .build()
 
-    suspend fun extractItemInfo(text: String): Result<ExtractedItemInfo> = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank() || apiKey == "YOUR_API_KEY_HERE") {
-            return@withContext Result.failure(Exception("SiliconFlow API Key not configured. Please add SILICON_FLOW_API_KEY to local.properties"))
+    suspend fun extractItemInfo(text: String, apiKey: String): Result<ExtractedItemInfo> = withContext(Dispatchers.IO) {
+        if (apiKey.isBlank()) {
+            return@withContext Result.failure(Exception("SiliconFlow API Key not configured. Please add it in the app settings."))
         }
 
         val prompt = """

@@ -4,18 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.Item
 import com.thingspath.data.remote.SiliconFlowClient
+import com.thingspath.data.local.repository.SettingsRepository
 import com.thingspath.domain.usecase.AddItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AddItemViewModel @Inject constructor(
-    private val addItemUseCase: AddItemUseCase
+    private val addItemUseCase: AddItemUseCase,
+    private val siliconFlowClient: SiliconFlowClient,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
-
-    private val siliconFlowClient = SiliconFlowClient()
 
     private val _state = MutableStateFlow(AddItemState())
     val state: StateFlow<AddItemState> = _state.asStateFlow()
@@ -144,7 +146,8 @@ class AddItemViewModel @Inject constructor(
 
         viewModelScope.launch {
             _state.update { it.copy(isAiLoading = true, aiError = null) }
-            val result = siliconFlowClient.extractItemInfo(text)
+            val apiKey = settingsRepository.apiKeyFlow.first()
+            val result = siliconFlowClient.extractItemInfo(text, apiKey)
             
             result.onSuccess { info ->
                 _state.update { currentState ->
