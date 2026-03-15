@@ -62,13 +62,12 @@ android {
     }
 
     applicationVariants.all {
-        val variant = this
         outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                when (variant.buildType.name) {
-                    "release" -> "thingspath-signed.apk"
-                    else -> "thingspath-unsigned.apk"
-                }
+            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output?.outputFileName = when (buildType.name) {
+                "release" -> "thingspath-signed.apk"
+                else -> "thingspath-unsigned.apk"
+            }
         }
     }
 

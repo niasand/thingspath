@@ -39,8 +39,8 @@ fun AIAddScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(24.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
