@@ -55,7 +55,7 @@ class SiliconFlowClient {
         """.trimIndent()
 
         val requestBodyMap = mutableMapOf(
-            "model" to "Qwen/Qwen2-7B-Instruct",
+            "model" to "Pro/deepseek-ai/DeepSeek-V3.2",
             "messages" to listOf(
                 mapOf("role" to "system", "content" to "你是一个专门从文本中提取物品信息的助手。你必须始终返回一个合法的 JSON 对象。"),
                 mapOf("role" to "user", "content" to prompt)
