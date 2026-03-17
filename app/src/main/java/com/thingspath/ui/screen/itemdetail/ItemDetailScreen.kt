@@ -23,8 +23,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.thingspath.ui.component.ItemAvatarPlaceholder
 import com.thingspath.ui.component.DeleteConfirmationDialog
+import com.thingspath.ui.component.ItemImagePlaceholder
 import android.app.DatePickerDialog
 import android.widget.DatePicker
 import androidx.compose.foundation.clickable
@@ -35,9 +35,9 @@ import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.thingspath.util.ItemImageStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,21 +55,13 @@ fun ItemDetailScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val copiedPath = copyUriToCache(context, it)
-            viewModel.onImagePathChange(copiedPath)
-        }
-    }
-    
-    val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            // Handle camera result
+            val storedPath = ItemImageStorage.saveToAlbum(context, it)
+            viewModel.onImagePathChange(storedPath)
         }
     }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection), // Remove imePadding from here
+        modifier = modifier.imePadding().nestedScroll(scrollBehavior.nestedScrollConnection), // Add imePadding
         topBar = {
             TopAppBar(
                 title = { Text("Item Details") },
@@ -152,8 +144,8 @@ fun ItemDetailScreen(
                 onImageDeleteClick = { viewModel.onImagePathChange(null) },
                 onImageClick = { viewModel.showFullScreenImage() },
                 modifier = Modifier
-                    .padding(top = paddingValues.calculateTopPadding())
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                    .fillMaxSize()
+                    .padding(paddingValues)
                     .verticalScroll(scrollState)
             )
         }
@@ -213,15 +205,15 @@ fun ItemDetailContent(
         ) {
             if (state.isEditing) {
                 EditableImageView(
-                    itemName = state.name,
                     imagePath = state.imagePath,
+                    itemName = state.name,
                     onImagePickerClick = onImagePickerClick,
                     onImageDeleteClick = onImageDeleteClick
                 )
             } else {
                 ItemImageDisplay(
-                    itemName = state.name,
                     imagePath = state.imagePath,
+                    itemName = state.item?.name,
                     onClick = onImageClick
                 )
             }
@@ -248,8 +240,8 @@ fun ItemDetailContent(
 
 @Composable
 fun EditableImageView(
-    itemName: String,
     imagePath: String?,
+    itemName: String?,
     onImagePickerClick: () -> Unit,
     onImageDeleteClick: () -> Unit
 ) {
@@ -266,9 +258,11 @@ fun EditableImageView(
                 contentScale = ContentScale.Crop
             )
         } else {
-            ItemAvatarPlaceholder(
+            ItemImagePlaceholder(
                 name = itemName,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                shape = MaterialTheme.shapes.medium,
+                maxLines = 2
             )
         }
 
@@ -311,8 +305,8 @@ fun EditableImageView(
 
 @Composable
 fun ItemImageDisplay(
-    itemName: String,
     imagePath: String?,
+    itemName: String?,
     onClick: () -> Unit = {}
 ) {
     Box(
@@ -329,9 +323,11 @@ fun ItemImageDisplay(
                 contentScale = ContentScale.Crop
             )
         } else {
-            ItemAvatarPlaceholder(
+            ItemImagePlaceholder(
                 name = itemName,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                shape = MaterialTheme.shapes.medium,
+                maxLines = 2
             )
         }
     }
@@ -489,6 +485,9 @@ fun EditModeContent(
 @Composable
 fun ViewModeContent(item: com.thingspath.data.model.Item?) {
     item ?: return
+    val usageDays = remember(item.purchaseDate) {
+        item.purchaseDate?.let { calculateUsageDaysFromPurchaseDate(it) }
+    } ?: item.usageDays
     DetailField(
         label = "Name",
         value = item.name
@@ -512,7 +511,7 @@ fun ViewModeContent(item: com.thingspath.data.model.Item?) {
         )
     }
 
-    item.usageDays?.let { days ->
+    usageDays?.let { days ->
         DetailField(
             label = "Usage Days",
             value = "$days days"
@@ -562,6 +561,18 @@ fun ViewModeContent(item: com.thingspath.data.model.Item?) {
         label = "Added Date",
         value = formatDate(item.createdAt)
     )
+}
+
+private fun calculateUsageDaysFromPurchaseDate(purchaseDateMillis: Long): Int? {
+    val cal = Calendar.getInstance()
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0)
+    cal.set(Calendar.MILLISECOND, 0)
+    val todayStart = cal.timeInMillis
+    val diff = todayStart - purchaseDateMillis
+    val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+    return if (days >= 0) days.toInt() else null
 }
 
 @Composable
@@ -615,24 +626,8 @@ fun DetailField(
     }
 }
 
-
-
 private fun formatDate(timestamp: Long): String {
     val date = Date(timestamp)
     val format = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
     return format.format(date)
-}
-
-private fun copyUriToCache(context: Context, uri: Uri): String {
-    val cacheDir = File(context.cacheDir, "item_images")
-    if (!cacheDir.exists()) {
-        cacheDir.mkdirs()
-    }
-    val destFile = File(cacheDir, "${System.currentTimeMillis()}.jpg")
-    context.contentResolver.openInputStream(uri).use { input ->
-        destFile.outputStream().use { output ->
-            input?.copyTo(output)
-        }
-    }
-    return destFile.absolutePath
 }

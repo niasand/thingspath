@@ -2,11 +2,22 @@ package com.thingspath.ui.screen.home
 
 import com.thingspath.data.model.Item
 
+enum class HomeSortField {
+    PurchaseDate,
+    Name,
+    UsageDays,
+    UpdatedAt
+}
+
 data class HomeState(
     val items: List<Item> = emptyList(),
     val isLoading: Boolean = false,
-    val isGridView: Boolean = false,
     val searchQuery: String = "",
+    val sortField: HomeSortField = HomeSortField.UpdatedAt,
+    val sortAscending: Boolean = false,
+    val pageSize: Int = 10,
+    val currentPage: Int = 0,
+    val pageCount: Int = 0,
     val showDeleteDialog: Boolean = false,
     val itemToDelete: Item? = null,
     val totalItemCount: Int = 0,
@@ -15,5 +26,18 @@ data class HomeState(
     val isImporting: Boolean = false,
     val exportSuccess: Boolean = false,
     val importSuccess: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val infoMessage: String? = null,
+    val isAIProcessing: Boolean = false,
+    // Tag Filter
+    val allTags: List<String> = emptyList(),
+    val selectedTags: Set<String> = emptySet(),
+    // Batch Actions
+    val isSelectionMode: Boolean = false,
+    val selectedItemIds: Set<Long> = emptySet(),
+    // Statistics
+    val showStatistics: Boolean = false,
+    
+    // List Control
+    val scrollToTopSignal: Long = 0L // Increment to trigger scroll to top
 )

@@ -3,6 +3,35 @@
 ## Build Status
 ✅ **APK Build Successful** - `app/build/outputs/apk/debug/app-debug.apk` (17.1 MB)
 
+## Update - 2026-03-12
+**List / Grid 价格展示：**
+- 在 list 和 grid 模式下的物品卡片增加价格标签（小字号、胶囊样式），仅当 `purchasePrice > 0` 时显示。
+
+**Grid 信息对齐：**
+- 修复 grid 模式下价格、时间与持有时间对齐问题（底部对齐）。
+
+**默认图片占位统一：**
+- 无图片时统一使用「淡蓝底 + 居中物品名称」作为占位图。
+- 占位文字调整为更小字号，并统一为纯黑色 `#000000`。
+
+**物品图片相册：**
+- 用户选择的物品图片会复制并保存到系统相册 `Pictures/ThingsPath`（单独相册）。
+
+**Usage Days 联动：**
+- 详情页 usageDays 直接根据 purchaseDate 计算显示。
+- 编辑时 purchaseDate 与 usageDays 双向联动：修改任一项会自动推导并更新另一项（基于当前日期计算）。
+
+**分页功能（按 UI 图实现）：**
+- 新增分页功能，默认每页 10 条，可选 10 / 20 / 50 条每页（保存到本地偏好）。
+- 分页条样式按 UI 图：左侧“共 X 条”，中间页码按钮 + 省略号，右侧“10/页”下拉。
+- 已处理：
+  - 分页不再和右下角加号重叠：把分页条从内容区挪到 Scaffold 的 bottomBar，这样系统会自动把 FAB（加号）顶到分页条上方。
+  - 分页整体调小：把高度从 36dp 降到 32dp，文字从 labelLarge 降到 labelMedium，整体 padding/间距也缩小了一档。
+  - 加号按钮背景改为“玻璃感”半透明底色，避免遮挡列表文字（提高不透明度，避免底部出现白色透底）。
+
+**验证：**
+- `:app:assembleDebug` 通过。
+
 ## Update - 2026-03-03
 **Search Functionality Improvements:**
 - **Fixed:** Search functionality now correctly triggers on input change.
@@ -16,6 +45,13 @@
 - **Feature:** Added automatic data restoration from backup on fresh install.
 - **Feature:** Implemented background hourly backup using WorkManager.
 - **UX:** Improved import/export success messages to automatically dismiss after 1 second.
+
+**AI Smart Add:**
+- **Feature:** Added "AI Smart Add" mode to automatically extract item details from text.
+- **Integration:** Integrated SiliconFlow API (DeepSeek-R1 model) for text analysis.
+- **UI:** Added expandable FAB with "Manual Add" and "AI Smart Add" options.
+- **UI:** Added Settings screen to configure API Key.
+- **Workflow:** User pastes text -> AI analyzes -> Pre-fills Add Item form.
 
 **App Icon Update:**
 - **UI:** Updated app icon to a new anime-style design.
@@ -107,19 +143,3 @@
 - [x] Data persists (data remains after restart)
 - [x] Date format is correct
 - [x] Usage days calculation is accurate
-
-## Build Record: 2026-03-03 16:41:13
-- Status: Success
-- Base Commit: 539607b
-
-## Build Record: 2026-03-03 16:42:21
-- Status: Success
-- Base Commit: 539607b
-
-## Build Record: 2026-03-03 16:46:29
-- Status: Success
-- Base Commit: 539607b
-
-## Build Record: 2026-03-03 16:49:12
-- Status: Success
-- Base Commit: 539607b

@@ -1,26 +1,101 @@
 package com.thingspath.ui.screen.settings
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.thingspath.data.local.datastore.SettingsRepository
+import com.thingspath.data.local.repository.FileRepository
+import com.thingspath.domain.usecase.ExportItemsUseCase
+import com.thingspath.domain.usecase.ImportItemsUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class SettingsUiState(
+    val isExporting: Boolean = false,
+    val isImporting: Boolean = false,
+    val infoMessage: String? = null,
+    val errorMessage: String? = null
+)
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val settingsRepository: SettingsRepository,
+    private val exportItemsUseCase: ExportItemsUseCase,
+    private val importItemsUseCase: ImportItemsUseCase,
+    private val fileRepository: FileRepository
+) : ViewModel() {
+
+    val apiKey = settingsRepository.apiKey.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ""
+    )
+
+    suspend fun saveApiKey(key: String) {
+        settingsRepository.saveApiKey(key)
+    }
+
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    fun dismissMessage() {
+        _uiState.value = _uiState.value.copy(infoMessage = null, errorMessage = null)
+    }
+
+    fun exportData(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isExporting = true, infoMessage = null, errorMessage = null)
+                val jsonString = exportItemsUseCase()
+                fileRepository.writeString(uri, jsonString)
+                _uiState.value = _uiState.value.copy(isExporting = false, infoMessage = "导出成功")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isExporting = false, errorMessage = e.message ?: "导出失败")
+            }
+        }
+    }
+
+    fun importData(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isImporting = true, infoMessage = null, errorMessage = null)
+                val jsonString = fileRepository.readString(uri)
+                importItemsUseCase(jsonString)
+                _uiState.value = _uiState.value.copy(isImporting = false, infoMessage = "导入成功")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isImporting = false, errorMessage = e.message ?: "导入失败")
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = hiltViewModel(),
-    onBackClick: () -> Unit
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val apiKey by viewModel.apiKey.collectAsState()
-    val state by viewModel.state.collectAsState()
-    var apiKeyInput by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
+    var inputKey by remember(apiKey) { mutableStateOf(apiKey ?: "") }
+    val scope = rememberCoroutineScope()
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -34,109 +109,117 @@ fun SettingsScreen(
         uri?.let { viewModel.importData(it) }
     }
 
-    LaunchedEffect(apiKey) {
-        apiKeyInput = apiKey
-    }
-
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(state.exportSuccess, state.importSuccess, state.errorMessage) {
-        when {
-            state.exportSuccess -> snackbarHostState.showSnackbar("Export successful")
-            state.importSuccess -> snackbarHostState.showSnackbar("Import successful")
-            state.errorMessage != null -> snackbarHostState.showSnackbar(state.errorMessage!!)
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
             Text(
-                text = "SiliconFlow API Configuration",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = apiKeyInput,
-                onValueChange = { apiKeyInput = it },
-                label = { Text("SiliconFlow API Key") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                text = "AI Configuration",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedTextField(
+                value = inputKey,
+                onValueChange = { inputKey = it },
+                label = { Text("SiliconFlow API Key") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation()
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "The API Key is stored locally on your device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
             Button(
-                onClick = { viewModel.saveApiKey(apiKeyInput) },
+                onClick = { 
+                    scope.launch {
+                        viewModel.saveApiKey(inputKey)
+                        onBack()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save Settings")
+                Text("Save")
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "The API key is required for AI-powered item recognition. You can get your key from siliconflow.cn.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            HorizontalDivider()
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Backup & Restore",
-                style = MaterialTheme.typography.titleMedium
+                text = "数据导入/导出",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (uiState.infoMessage != null) {
+                Text(
+                    text = uiState.infoMessage!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (uiState.errorMessage != null) {
+                Text(
+                    text = uiState.errorMessage!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Button(
+                OutlinedButton(
                     onClick = { exportLauncher.launch("thingspath_backup.json") },
-                    modifier = Modifier.weight(1f),
-                    enabled = !state.isExporting
+                    enabled = !uiState.isExporting && !uiState.isImporting,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.FileDownload, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Export")
+                    Text(if (uiState.isExporting) "导出中..." else "导出")
                 }
-
-                Button(
+                OutlinedButton(
                     onClick = { importLauncher.launch(arrayOf("application/json")) },
-                    modifier = Modifier.weight(1f),
-                    enabled = !state.isImporting
+                    enabled = !uiState.isExporting && !uiState.isImporting,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.FileUpload, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Import")
+                    Text(if (uiState.isImporting) "导入中..." else "导入")
                 }
             }
 
-            if (state.isExporting || state.isImporting) {
-                Spacer(modifier = Modifier.height(16.dp))
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            if (uiState.infoMessage != null || uiState.errorMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = { viewModel.dismissMessage() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Dismiss")
+                }
             }
         }
     }

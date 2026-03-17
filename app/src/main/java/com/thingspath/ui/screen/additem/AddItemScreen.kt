@@ -4,15 +4,14 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -24,14 +23,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
+import com.thingspath.ui.component.ItemImagePlaceholder
 import android.app.DatePickerDialog
 import android.widget.DatePicker
 import java.io.File
 import java.util.Calendar
-import com.thingspath.ui.component.ItemAvatarPlaceholder
+import com.thingspath.util.ItemImageStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +46,8 @@ fun AddItemScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val copiedPath = copyUriToCache(context, it)
-            viewModel.onImagePathChange(copiedPath)
+            val storedPath = ItemImageStorage.saveToAlbum(context, it)
+            viewModel.onImagePathChange(storedPath)
         }
     }
 
@@ -88,7 +86,8 @@ fun AddItemScreen(
                     }
                 }
             )
-        }
+        },
+        modifier = modifier.imePadding() // Add imePadding to Scaffold
     ) { paddingValues ->
         if (state.isLoading) {
             Box(
@@ -113,7 +112,6 @@ fun AddItemScreen(
                 onRemoveTag = { viewModel.removeTag(it) },
                 onImagePickerClick = { imagePickerLauncher.launch("image/*") },
                 onImageDeleteClick = { viewModel.onImagePathChange(null) },
-                onAiExtract = { viewModel.extractInfo() },
                 onSave = {
                     viewModel.saveItem(
                         onSuccess = {
@@ -125,8 +123,8 @@ fun AddItemScreen(
                 },
                 onCancel = onBack,
                 modifier = Modifier
-                    .padding(top = paddingValues.calculateTopPadding())
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                    .fillMaxSize()
+                    .padding(paddingValues)
                     .verticalScroll(scrollState)
             )
         }
@@ -147,7 +145,6 @@ fun AddItemForm(
     onRemoveTag: (String) -> Unit,
     onImagePickerClick: () -> Unit,
     onImageDeleteClick: () -> Unit,
-    onAiExtract: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
@@ -179,8 +176,8 @@ fun AddItemForm(
             contentAlignment = Alignment.Center
         ) {
             EditableImageView(
-                itemName = state.name,
                 imagePath = state.imagePath,
+                itemName = state.name,
                 onImagePickerClick = onImagePickerClick,
                 onImageDeleteClick = onImageDeleteClick
             )
@@ -249,20 +246,11 @@ fun AddItemForm(
         OutlinedTextField(
             value = state.note,
             onValueChange = onNoteChange,
-            label = { Text("Note (AI 解析源)") },
+            label = { Text("Note") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,
             maxLines = 5,
-            placeholder = { Text("例如：昨天在大地影院买了个50元的充电宝") },
-            trailingIcon = {
-                IconButton(onClick = onAiExtract) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "AI Extract",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            placeholder = { Text("Add any notes here...") }
         )
 
         // Tags Section
@@ -342,8 +330,8 @@ fun AddItemForm(
 
 @Composable
 fun EditableImageView(
-    itemName: String,
     imagePath: String?,
+    itemName: String?,
     onImagePickerClick: () -> Unit,
     onImageDeleteClick: () -> Unit
 ) {
@@ -361,9 +349,11 @@ fun EditableImageView(
                 contentScale = ContentScale.Crop
             )
         } else {
-            ItemAvatarPlaceholder(
+            ItemImagePlaceholder(
                 name = itemName,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                shape = MaterialTheme.shapes.medium,
+                maxLines = 2
             )
         }
 
@@ -381,7 +371,6 @@ fun EditableImageView(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -395,30 +384,12 @@ fun EditableImageView(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
             ) {
                 Icon(
                     imageVector = if (imagePath != null) Icons.Default.Edit else Icons.Default.AddAPhoto,
-                    contentDescription = if (imagePath != null) "Change image" else "Add image",
-                    tint = MaterialTheme.colorScheme.primary
+                    contentDescription = if (imagePath != null) "Change image" else "Add image"
                 )
             }
         }
     }
-}
-
-
-
-private fun copyUriToCache(context: Context, uri: Uri): String {
-    val cacheDir = File(context.cacheDir, "item_images")
-    if (!cacheDir.exists()) {
-        cacheDir.mkdirs()
-    }
-    val destFile = File(cacheDir, "${System.currentTimeMillis()}.jpg")
-    context.contentResolver.openInputStream(uri).use { input ->
-        destFile.outputStream().use { output ->
-            input?.copyTo(output)
-        }
-    }
-    return destFile.absolutePath
 }

@@ -8,6 +8,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
@@ -18,6 +22,7 @@ class ItemDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val itemId: Long = savedStateHandle.get<Long>("itemId") ?: 0L
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     private val _state = MutableStateFlow(ItemDetailState())
     val state: StateFlow<ItemDetailState> = _state.asStateFlow()
@@ -34,15 +39,19 @@ class ItemDetailViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 val item = getItemByIdUseCase(itemId)
                 item?.let { loadedItem ->
+                    val purchaseDateStr = formatPurchaseDate(loadedItem.purchaseDate)
+                    val usageDaysStr = computeUsageDaysFromPurchaseDateString(purchaseDateStr)
+                        ?: loadedItem.usageDays?.toString()
+                        ?: ""
                     _state.update {
                         it.copy(
                             item = loadedItem,
                             isLoading = false,
                             name = loadedItem.name,
                             location = loadedItem.location ?: "",
-                            purchaseDate = formatPurchaseDate(loadedItem.purchaseDate),
+                            purchaseDate = purchaseDateStr,
                             purchasePrice = loadedItem.purchasePrice.takeIf { it > 0 }?.toString() ?: "",
-                            usageDays = loadedItem.usageDays?.toString() ?: "",
+                            usageDays = usageDaysStr,
                             note = loadedItem.note ?: "",
                             tags = loadedItem.tags,
                             imagePath = loadedItem.imagePath
@@ -66,8 +75,13 @@ class ItemDetailViewModel @Inject constructor(
     }
 
     fun onPurchaseDateChange(value: String) {
-        _state.update { it.copy(purchaseDate = value) }
-        calculateUsageDays(value)
+        if (value.isBlank()) {
+            _state.update { it.copy(purchaseDate = "", usageDays = "") }
+            return
+        }
+
+        val usageDaysStr = computeUsageDaysFromPurchaseDateString(value) ?: ""
+        _state.update { it.copy(purchaseDate = value, usageDays = usageDaysStr) }
     }
 
     fun onPurchasePriceChange(value: String) {
@@ -77,57 +91,16 @@ class ItemDetailViewModel @Inject constructor(
         }
     }
 
-    private fun calculateUsageDays(purchaseDateStr: String) {
-        if (purchaseDateStr.isBlank()) return
-        
-        try {
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-            val purchaseDate = sdf.parse(purchaseDateStr)
-            if (purchaseDate != null) {
-                val today = java.util.Calendar.getInstance().apply {
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
-                }
-                val purchaseCal = java.util.Calendar.getInstance().apply {
-                    time = purchaseDate
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
-                }
-                
-                val diff = today.timeInMillis - purchaseCal.timeInMillis
-                val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
-                if (days >= 0) {
-                    _state.update { it.copy(usageDays = days.toString()) }
-                }
-            }
-        } catch (e: Exception) {}
-    }
-
     fun onUsageDaysChange(value: String) {
-        val daysStr = value.filter { it.isDigit() }
-        val days = daysStr.toLongOrNull()
-        
-        _state.update { currentState ->
-            var newState = currentState.copy(usageDays = daysStr)
-            if (days != null) {
-                try {
-                    val calendar = java.util.Calendar.getInstance().apply {
-                        set(java.util.Calendar.HOUR_OF_DAY, 0)
-                        set(java.util.Calendar.MINUTE, 0)
-                        set(java.util.Calendar.SECOND, 0)
-                        set(java.util.Calendar.MILLISECOND, 0)
-                        add(java.util.Calendar.DAY_OF_YEAR, -days.toInt())
-                    }
-                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                    newState = newState.copy(purchaseDate = sdf.format(calendar.time))
-                } catch (e: Exception) {}
-            }
-            newState
+        val digits = value.filter { it.isDigit() }
+        if (digits.isBlank()) {
+            _state.update { it.copy(usageDays = "", purchaseDate = "") }
+            return
         }
+
+        val days = digits.toIntOrNull() ?: 0
+        val purchaseDateStr = computePurchaseDateStringFromUsageDays(days)
+        _state.update { it.copy(usageDays = days.toString(), purchaseDate = purchaseDateStr) }
     }
 
     fun onNoteChange(value: String) {
@@ -219,17 +192,44 @@ class ItemDetailViewModel @Inject constructor(
 
     private fun formatPurchaseDate(timestamp: Long?): String {
         if (timestamp == null) return ""
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-        return sdf.format(java.util.Date(timestamp))
+        return dateFormat.format(java.util.Date(timestamp))
     }
 
     private fun parsePurchaseDate(dateString: String): Long? {
         if (dateString.isBlank()) return null
         return try {
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-            sdf.parse(dateString)?.time
+            dateFormat.parse(dateString)?.time
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun computeUsageDaysFromPurchaseDateString(purchaseDateStr: String): String? {
+        if (purchaseDateStr.isBlank()) return null
+        return try {
+            val purchaseDate = dateFormat.parse(purchaseDateStr) ?: return null
+            val todayStart = todayStartMillis()
+            val diff = todayStart - purchaseDate.time
+            val days = TimeUnit.MILLISECONDS.toDays(diff)
+            if (days >= 0) days.toString() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun computePurchaseDateStringFromUsageDays(days: Int): String {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = todayStartMillis()
+        cal.add(Calendar.DAY_OF_YEAR, -days.coerceAtLeast(0))
+        return dateFormat.format(cal.time)
+    }
+
+    private fun todayStartMillis(): Long {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
 }
