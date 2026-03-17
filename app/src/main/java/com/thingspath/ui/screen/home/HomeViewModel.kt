@@ -131,7 +131,7 @@ class HomeViewModel @Inject constructor(
 
                 DataResult(allTags, sorted, allItems, shouldScrollToTop)
             }
-            .collect { (allTags, displayedItems, allItemsSource, shouldScrollToTop) ->
+            .collect { (allTags, displayedItems, _, shouldScrollToTop) ->
                  val totalCount = displayedItems.size // Count of filtered items
                  val totalPrice = displayedItems.sumOf { it.purchasePrice }
                  

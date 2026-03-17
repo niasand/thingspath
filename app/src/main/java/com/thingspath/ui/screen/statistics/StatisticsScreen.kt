@@ -208,7 +208,6 @@ fun PieChart(
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 var startAngle = -90f
-                val radius = size.minDimension / 2
                 val strokeWidth = 40.dp.toPx()
 
                 data.forEach { (percentage, color, _) ->
