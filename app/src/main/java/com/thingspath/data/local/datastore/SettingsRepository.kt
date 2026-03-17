@@ -1,0 +1,46 @@
+package com.thingspath.data.local.datastore
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+@Singleton
+class SettingsRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    private val API_KEY = stringPreferencesKey("silicon_flow_api_key")
+    private val PAGE_SIZE = intPreferencesKey("page_size")
+
+    val apiKey: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[API_KEY]
+        }
+
+    val pageSize: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[PAGE_SIZE] ?: 10
+        }
+
+    suspend fun saveApiKey(key: String) {
+        context.dataStore.edit { preferences ->
+            preferences[API_KEY] = key
+        }
+    }
+
+    suspend fun savePageSize(size: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PAGE_SIZE] = size
+        }
+    }
+}

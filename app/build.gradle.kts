@@ -1,6 +1,3 @@
-import java.util.Properties
-import java.io.FileInputStream
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -16,30 +13,12 @@ android {
         applicationId = "com.thingspath"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
-
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localProperties.load(FileInputStream(localPropertiesFile))
-        }
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
-        }
-    }
-
-    signingConfigs {
-        create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-            if (keystorePath != null) {
-                storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
         }
     }
 
@@ -50,20 +29,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val releaseSigningConfig = signingConfigs.findByName("release")
-            if (releaseSigningConfig?.storeFile != null) {
-                signingConfig = releaseSigningConfig
-            }
         }
     }
 
     applicationVariants.all {
         outputs.all {
-            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output?.outputFileName = when (buildType.name) {
-                "release" -> "thingspath-signed.apk"
-                else -> "thingspath-unsigned.apk"
-            }
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "thingspath.apk"
         }
     }
 
@@ -78,7 +49,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     composeOptions {
@@ -137,11 +107,12 @@ dependencies {
     // Gson
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // OkHttp (for SiliconFlow API)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // DataStore for preferences
+    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Testing

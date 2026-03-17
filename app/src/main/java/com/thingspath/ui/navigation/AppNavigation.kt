@@ -2,14 +2,14 @@ package com.thingspath.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.thingspath.ui.screen.additem.AddItemScreen
 import com.thingspath.ui.screen.home.HomeScreen
-import com.thingspath.ui.screen.settings.SettingsScreen
 import com.thingspath.ui.screen.itemdetail.ItemDetailScreen
+
+import com.thingspath.ui.screen.settings.SettingsScreen
 
 @Composable
 fun AppNavigation(
@@ -25,23 +25,18 @@ fun AppNavigation(
                 onAddItemClick = {
                     navController.navigate(Screen.AddItem.route)
                 },
-                onAddAIItemClick = {
-                    navController.navigate(Screen.AIAdd.route)
-                },
-                onSettingsClick = {
-                    navController.navigate(Screen.Settings.route)
-                },
                 onItemClick = { itemId ->
                     navController.navigate(Screen.ItemDetail.createRoute(itemId))
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 }
             )
         }
 
         composable(route = Screen.Settings.route) {
             SettingsScreen(
-                onBackClick = {
-                    navController.popBackStack()
-                }
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -54,34 +49,10 @@ fun AppNavigation(
             )
         }
 
-
-        composable(route = Screen.AIAdd.route) {
-            val addItemViewModel: com.thingspath.ui.screen.additem.AddItemViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-            com.thingspath.ui.screen.aiadd.AIAddScreen(
-                viewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-                onBack = {
-                    navController.popBackStack()
-                },
-                onResult = { name, date, location, price ->
-                    addItemViewModel.prefillFromAi(
-                        name = name,
-                        date = date,
-                        location = location,
-                        price = price,
-                        autoSave = true,
-                        onSuccess = {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(Screen.Home.route) { inclusive = true }
-                            }
-                        }
-                    )
-                }
-            )
-        }
         composable(
             route = Screen.ItemDetail.route,
             arguments = listOf(
-                navArgument("itemId") { type = NavType.LongType; defaultValue = 0L }
+                navArgument("itemId") { type = androidx.navigation.NavType.LongType; defaultValue = 0L }
             )
         ) {
             ItemDetailScreen(
