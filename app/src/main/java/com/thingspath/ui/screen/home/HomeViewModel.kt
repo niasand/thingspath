@@ -306,38 +306,50 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isAIProcessing = true, errorMessage = null) }
-                val extractedItem = withTimeout(60_000) {
+                val extractedItems = withTimeout(60_000) {
                     withContext(Dispatchers.IO) {
                         siliconFlowRepository.analyzeText(text)
                     }
                 }
-                val name = extractedItem.name?.trim().orEmpty()
-                if (name.isBlank()) {
-                    throw IllegalStateException("无法识别物品名称")
+
+                // 过滤无效名称的物品
+                val validItems = extractedItems.filter { !it.name.isNullOrBlank() }
+                if (validItems.isEmpty()) {
+                    throw IllegalStateException("无法识别任何物品名称")
                 }
 
-                val purchaseDate = extractedItem.date?.let { parseDateToMillis(it) }
-                val usageDays = purchaseDate?.let { dateMillis ->
-                    val diff = System.currentTimeMillis() - dateMillis
-                    val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
-                    if (days >= 0) days.toInt() else null
-                }
+                val addedNames = mutableListOf<String>()
+                validItems.forEach { extractedItem ->
+                    val name = extractedItem.name!!.trim()
+                    val purchaseDate = extractedItem.date?.let { parseDateToMillis(it) }
+                    val usageDays = purchaseDate?.let { dateMillis ->
+                        val diff = System.currentTimeMillis() - dateMillis
+                        val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+                        if (days >= 0) days.toInt() else null
+                    }
 
-                val id = addItemUseCase(
-                    Item(
-                        name = name,
-                        location = extractedItem.location?.trim()?.takeIf { it.isNotBlank() },
-                        purchaseDate = purchaseDate,
-                        purchasePrice = extractedItem.price ?: 0.0,
-                        usageDays = usageDays,
-                        note = extractedItem.note?.trim()?.takeIf { it.isNotBlank() },
-                        tags = extractedItem.tags?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
-                        imagePath = null
+                    addItemUseCase(
+                        Item(
+                            name = name,
+                            location = extractedItem.location?.trim()?.takeIf { it.isNotBlank() },
+                            purchaseDate = purchaseDate,
+                            purchasePrice = extractedItem.price ?: 0.0,
+                            usageDays = usageDays,
+                            note = extractedItem.note?.trim()?.takeIf { it.isNotBlank() },
+                            tags = extractedItem.tags?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
+                            imagePath = null
+                        )
                     )
-                )
+                    addedNames.add(name)
+                }
 
-                _state.update { it.copy(isAIProcessing = false, infoMessage = "AI 已添加：$name (#$id)") }
-                delay(1000)
+                val message = if (addedNames.size == 1) {
+                    "AI 已添加：${addedNames.first()}"
+                } else {
+                    "AI 已添加 ${addedNames.size} 个物品：${addedNames.joinToString("、")}"
+                }
+                _state.update { it.copy(isAIProcessing = false, infoMessage = message) }
+                delay(2000)
                 dismissMessage()
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 _state.update { it.copy(isAIProcessing = false, errorMessage = "AI 分析超时，请稍后重试") }
