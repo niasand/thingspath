@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.thingspath.data.local.dao.ItemDao
 import com.thingspath.data.local.database.AppDatabase
+import com.thingspath.data.local.database.DatabaseMigrations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +26,10 @@ object DatabaseModule {
             AppDatabase::class.java,
             "thingspath_database"
         )
-            .fallbackToDestructiveMigration()
+            .addMigrations(
+                DatabaseMigrations.MIGRATION_1_2,
+                DatabaseMigrations.MIGRATION_2_3
+            )
             .build()
     }
 

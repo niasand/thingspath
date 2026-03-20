@@ -82,7 +82,9 @@ dependencies {
     // Room Database
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1") {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 
     // Hilt/Dagger - Dependency Injection
     implementation("com.google.dagger:hilt-android:2.48.1")

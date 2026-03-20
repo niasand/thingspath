@@ -14,4 +14,8 @@ class DeleteItemUseCase @Inject constructor(
     suspend operator fun invoke(itemId: Long) {
         repository.deleteItemById(itemId)
     }
+
+    suspend operator fun invoke(ids: Set<Long>) {
+        repository.deleteItemsByIds(ids)
+    }
 }

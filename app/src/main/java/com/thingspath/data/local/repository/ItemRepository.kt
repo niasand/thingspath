@@ -64,6 +64,11 @@ class ItemRepository @Inject constructor(
         backupData()
     }
 
+    suspend fun deleteItemsByIds(ids: Set<Long>) {
+        itemDao.deleteItemsByIds(ids.toList())
+        backupData()
+    }
+
     suspend fun deleteAllItems() {
         itemDao.deleteAllItems()
         backupData()

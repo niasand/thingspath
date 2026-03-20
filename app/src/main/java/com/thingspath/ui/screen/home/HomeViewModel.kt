@@ -186,12 +186,14 @@ class HomeViewModel @Inject constructor(
     fun deleteSelectedItems() {
         val idsToDelete = state.value.selectedItemIds
         if (idsToDelete.isEmpty()) return
-        
+
         viewModelScope.launch {
-             idsToDelete.forEach { id ->
-                 itemRepository.deleteItemById(id)
-             }
-             _state.update { it.copy(isSelectionMode = false, selectedItemIds = emptySet()) }
+            try {
+                deleteItemUseCase(idsToDelete)
+                _state.update { it.copy(isSelectionMode = false, selectedItemIds = emptySet()) }
+            } catch (e: Exception) {
+                _state.update { it.copy(errorMessage = "批量删除失败：${e.message ?: "未知错误"}") }
+            }
         }
     }
 
