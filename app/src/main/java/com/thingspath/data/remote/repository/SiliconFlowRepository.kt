@@ -29,8 +29,7 @@ class SiliconFlowRepository @Inject constructor(
 
         val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-        // 第一次调用：提取物品基本信息（不含tags）
-        val extractRequest = ChatCompletionRequest(
+        val request = ChatCompletionRequest(
             messages = listOf(
                 Message(
                     role = "system",
@@ -49,58 +48,8 @@ class SiliconFlowRepository @Inject constructor(
                         - date 输出 YYYY-MM-DD；若出现"昨天/今天/前天"等相对日期，用今天日期推算
                         - location 是购买地点或存放位置
                         - note 是额外备注信息
-                        JSON 结构：
-                        [{"name":string,"price":number|null,"date":string|null,"location":string|null,"note":string|null}]
-                        文本：$text
-                    """.trimIndent()
-                )
-            )
-        )
-
-        val extractResponse = api.chatCompletions("Bearer $apiKey", extractRequest)
-        val extractContent = extractResponse.choices.firstOrNull()?.message?.content
-            ?: throw IllegalStateException("No response from AI")
-
-        var extractJson = extractContent.trim()
-        if (extractJson.startsWith("```")) {
-            val lines = extractJson.lines()
-            if (lines.size > 2) {
-                extractJson = lines.subList(1, lines.lastIndex).joinToString("\n")
-            }
-        }
-
-        val items: List<AIExtractedItem> = try {
-            val listType = object : com.google.gson.reflect.TypeToken<List<AIExtractedItem>>() {}.type
-            gson.fromJson(extractJson, listType)
-        } catch (e: Exception) {
-            try {
-                val singleItem = gson.fromJson(extractJson, AIExtractedItem::class.java)
-                listOf(singleItem)
-            } catch (_: Exception) {
-                throw IllegalStateException("Failed to parse AI response: $extractContent", e)
-            }
-        }
-
-        // 第二次调用：为每个物品识别标签
-        return items.map { item ->
-            val tags = classifyItemTags(item.name ?: "", apiKey)
-            item.copy(tags = tags)
-        }
-    }
-
-    private suspend fun classifyItemTags(itemName: String, apiKey: String): List<String> {
-        val request = ChatCompletionRequest(
-            messages = listOf(
-                Message(
-                    role = "system",
-                    content = "你是一个物品分类专家。只输出 JSON 数组，不要输出解释。"
-                ),
-                Message(
-                    role = "user",
-                    content = """
-                        根据物品名称判断其分类标签，只输出标签数组。
-                        可选标签（只能选这些）：水果、食品、家具、电器、数码、服装、化妆品、药品、文具
-                        规则：
+                        - tags 必须根据物品名称智能推断分类标签
+                        标签分类规则（严格按此分类）：
                         - 水果：苹果、香蕉、橘子、葡萄、西瓜、草莓等
                         - 食品：萝卜、白菜、辣椒酱、大米、面条、面包等
                         - 家具：桌子、椅子、床、沙发、衣柜、书架等
@@ -110,30 +59,37 @@ class SiliconFlowRepository @Inject constructor(
                         - 化妆品：口红、面霜、洗面奶、粉底液、香水等
                         - 药品：感冒药、止痛药、维生素、退烧药、创可贴等
                         - 文具：笔、本子、文件夹、橡皮、尺子、胶带等
-                        - 无法确定或不在以上分类：返回 []
-                        只返回 JSON 数组格式，如：["水果"] 或 []
-                        物品名称：$itemName
+                        - 无法确定：返回 []
+                        JSON 结构：
+                        [{"name":string,"price":number|null,"date":string|null,"location":string|null,"tags":[string],"note":string|null}]
+                        文本：$text
                     """.trimIndent()
                 )
             )
         )
 
-        return try {
-            val response = api.chatCompletions("Bearer $apiKey", request)
-            val content = response.choices.firstOrNull()?.message?.content ?: return emptyList()
+        val response = api.chatCompletions("Bearer $apiKey", request)
+        val content = response.choices.firstOrNull()?.message?.content
+            ?: throw IllegalStateException("No response from AI")
 
-            var jsonString = content.trim()
-            if (jsonString.startsWith("```")) {
-                val lines = jsonString.lines()
-                if (lines.size > 2) {
-                    jsonString = lines.subList(1, lines.lastIndex).joinToString("\n")
-                }
+        var jsonString = content.trim()
+        if (jsonString.startsWith("```")) {
+            val lines = jsonString.lines()
+            if (lines.size > 2) {
+                jsonString = lines.subList(1, lines.lastIndex).joinToString("\n")
             }
+        }
 
-            val listType = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
-            gson.fromJson(jsonString, listType) ?: emptyList()
+        return try {
+            val listType = object : com.google.gson.reflect.TypeToken<List<AIExtractedItem>>() {}.type
+            gson.fromJson(jsonString, listType)
         } catch (e: Exception) {
-            emptyList()
+            try {
+                val singleItem = gson.fromJson(jsonString, AIExtractedItem::class.java)
+                listOf(singleItem)
+            } catch (_: Exception) {
+                throw IllegalStateException("Failed to parse AI response: $content", e)
+            }
         }
     }
 }
