@@ -261,8 +261,14 @@ class HomeViewModel @Inject constructor(
 
     fun confirmDelete() {
         viewModelScope.launch {
-            _state.value.itemToDelete?.let { item ->
-                deleteItemUseCase(item)
+            val state = _state.value
+            // 批量删除：处于选择模式且选中了项目
+            if (state.isSelectionMode && state.selectedItemIds.isNotEmpty()) {
+                deleteSelectedItems()
+                dismissDeleteDialog()
+            } else if (state.itemToDelete != null) {
+                // 单个删除
+                deleteItemUseCase(state.itemToDelete)
                 dismissDeleteDialog()
             }
         }
