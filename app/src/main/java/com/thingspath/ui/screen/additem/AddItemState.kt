@@ -9,7 +9,7 @@ data class AddItemState(
     val note: String = "",
     val tags: List<String> = emptyList(),
     val tagInput: String = "",
-    val imagePath: String? = null,
+    val imagePaths: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val nameError: String? = null
 )

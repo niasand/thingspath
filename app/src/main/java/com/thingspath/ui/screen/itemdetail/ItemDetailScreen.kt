@@ -1,42 +1,42 @@
 package com.thingspath.ui.screen.itemdetail
 
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.thingspath.ui.component.DeleteConfirmationDialog
 import com.thingspath.ui.component.ItemImagePlaceholder
+import com.thingspath.ui.component.MultiImageEditor
 import android.app.DatePickerDialog
 import android.widget.DatePicker
-import androidx.compose.foundation.clickable
-import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.*
-import java.io.File
-import androidx.compose.foundation.background
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.thingspath.util.ItemImageStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +56,7 @@ fun ItemDetailScreen(
     ) { uri: Uri? ->
         uri?.let {
             val storedPath = ItemImageStorage.saveToAlbum(context, it)
-            viewModel.onImagePathChange(storedPath)
+            if (storedPath != null) viewModel.addImage(storedPath)
         }
     }
 
@@ -140,9 +140,9 @@ fun ItemDetailScreen(
                 onTagInputChange = { viewModel.onTagInputChange(it) },
                 onAddTag = { viewModel.addTag() },
                 onRemoveTag = { viewModel.removeTag(it) },
-                onImagePickerClick = { imagePickerLauncher.launch("image/*") },
-                onImageDeleteClick = { viewModel.onImagePathChange(null) },
-                onImageClick = { viewModel.showFullScreenImage() },
+                onAddImage = { imagePickerLauncher.launch("image/*") },
+                onDeleteImage = viewModel::removeImage,
+                onImageClick = { index -> viewModel.showFullScreenImage(index) },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
@@ -151,13 +151,12 @@ fun ItemDetailScreen(
         }
 
         // Full Screen Image Dialog
-        if (state.isImageFullScreen) {
-            state.imagePath?.let { imagePath ->
-                FullScreenImageDialog(
-                    imagePath = imagePath,
-                    onDismiss = { viewModel.hideFullScreenImage() }
-                )
-            }
+        if (state.isImageFullScreen && state.imagePaths.isNotEmpty()) {
+            FullScreenImageDialog(
+                imagePaths = state.imagePaths,
+                initialIndex = state.fullScreenImageIndex,
+                onDismiss = { viewModel.hideFullScreenImage() }
+            )
         }
 
         // Delete Confirmation Dialog
@@ -187,9 +186,9 @@ fun ItemDetailContent(
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: (String) -> Unit,
-    onImagePickerClick: () -> Unit,
-    onImageDeleteClick: () -> Unit,
-    onImageClick: () -> Unit,
+    onAddImage: () -> Unit,
+    onDeleteImage: (Int) -> Unit,
+    onImageClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -197,26 +196,31 @@ fun ItemDetailContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Image Section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (state.isEditing) {
-                EditableImageView(
-                    imagePath = state.imagePath,
-                    itemName = state.name,
-                    onImagePickerClick = onImagePickerClick,
-                    onImageDeleteClick = onImageDeleteClick
+        if (state.isEditing) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Photos",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                ItemImageDisplay(
-                    imagePath = state.imagePath,
-                    itemName = state.item?.name,
-                    onClick = onImageClick
+                MultiImageEditor(
+                    imagePaths = state.imagePaths,
+                    onAddImage = onAddImage,
+                    onDeleteImage = onDeleteImage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(108.dp)
                 )
             }
+        } else {
+            MultiImageViewer(
+                imagePaths = state.imagePaths,
+                itemName = state.item?.name,
+                onImageClick = onImageClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
         }
 
         if (state.isEditing) {
@@ -238,96 +242,94 @@ fun ItemDetailContent(
     }
 }
 
+/**
+ * View-mode image display: single image or swipeable pager for multiple images.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun EditableImageView(
-    imagePath: String?,
+fun MultiImageViewer(
+    imagePaths: List<String>,
     itemName: String?,
-    onImagePickerClick: () -> Unit,
-    onImageDeleteClick: () -> Unit
+    onImageClick: (index: Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(MaterialTheme.shapes.medium)
-    ) {
-        if (imagePath != null) {
+    if (imagePaths.isEmpty()) {
+        ItemImagePlaceholder(
+            name = itemName,
+            modifier = modifier.clip(MaterialTheme.shapes.medium),
+            shape = MaterialTheme.shapes.medium,
+            maxLines = 2
+        )
+        return
+    }
+
+    if (imagePaths.size == 1) {
+        Box(
+            modifier = modifier
+                .clip(MaterialTheme.shapes.medium)
+                .clickable { onImageClick(0) }
+        ) {
             AsyncImage(
-                model = imagePath,
+                model = imagePaths[0],
                 contentDescription = "Item image",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-        } else {
-            ItemImagePlaceholder(
-                name = itemName,
-                modifier = Modifier.fillMaxSize(),
-                shape = MaterialTheme.shapes.medium,
-                maxLines = 2
+        }
+        return
+    }
+
+    // Multiple images: pager with dot indicator
+    val pagerState = rememberPagerState(pageCount = { imagePaths.size })
+    Box(modifier = modifier) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            AsyncImage(
+                model = imagePaths[page],
+                contentDescription = "Item image ${page + 1}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable { onImageClick(page) },
+                contentScale = ContentScale.Crop
             )
         }
-
-        // Action buttons overlay
+        // Dot indicator
         Row(
             modifier = Modifier
-                .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            if (imagePath != null) {
-                IconButton(
-                    onClick = onImageDeleteClick,
+            repeat(imagePaths.size) { index ->
+                Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(if (pagerState.currentPage == index) 8.dp else 6.dp)
                         .clip(CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete image",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-            IconButton(
-                onClick = onImagePickerClick,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-            ) {
-                Icon(
-                    imageVector = if (imagePath != null) Icons.Default.Edit else Icons.Default.AddAPhoto,
-                    contentDescription = if (imagePath != null) "Change image" else "Add image"
+                        .background(
+                            if (pagerState.currentPage == index)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.outline
+                        )
                 )
             }
         }
-    }
-}
-
-@Composable
-fun ItemImageDisplay(
-    imagePath: String?,
-    itemName: String?,
-    onClick: () -> Unit = {}
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(enabled = imagePath != null, onClick = onClick)
-    ) {
-        if (imagePath != null) {
-            AsyncImage(
-                model = imagePath,
-                contentDescription = "Item image",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            ItemImagePlaceholder(
-                name = itemName,
-                modifier = Modifier.fillMaxSize(),
-                shape = MaterialTheme.shapes.medium,
-                maxLines = 2
+        // Image counter (top-right)
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp),
+            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+            shape = MaterialTheme.shapes.small
+        ) {
+            Text(
+                text = "${pagerState.currentPage + 1}/${imagePaths.size}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
             )
         }
     }
@@ -575,11 +577,17 @@ private fun calculateUsageDaysFromPurchaseDate(purchaseDateMillis: Long): Int? {
     return if (days >= 0) days.toInt() else null
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FullScreenImageDialog(
-    imagePath: String,
+    imagePaths: List<String>,
+    initialIndex: Int = 0,
     onDismiss: () -> Unit
 ) {
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex.coerceIn(0, (imagePaths.size - 1).coerceAtLeast(0)),
+        pageCount = { imagePaths.size }
+    )
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -587,22 +595,63 @@ fun FullScreenImageDialog(
             dismissOnBackPress = true
         )
     ) {
-        // Use a Box to cover the full screen with a semi-transparent background
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.8f))
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = imagePath,
-                contentDescription = "Full screen image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentScale = ContentScale.Fit
-            )
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                AsyncImage(
+                    model = imagePaths[page],
+                    contentDescription = "Full screen image ${page + 1}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+            // Counter overlay (top-right)
+            if (imagePaths.size > 1) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "${pagerState.currentPage + 1} / ${imagePaths.size}",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                // Dot indicator (bottom)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    repeat(imagePaths.size) { index ->
+                        Box(
+                            modifier = Modifier
+                                .size(if (pagerState.currentPage == index) 10.dp else 7.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (pagerState.currentPage == index)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.outline
+                                )
+                        )
+                    }
+                }
+            }
         }
     }
 }

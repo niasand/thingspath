@@ -3,7 +3,8 @@ package com.thingspath.data.model
 data class Item(
     val id: Long = 0,
     val name: String,
-    val imagePath: String? = null,
+    val imagePath: String? = null,       // primary image (backward compat, derived from imagePaths[0])
+    val imagePaths: List<String> = emptyList(), // all images
     val location: String? = null,
     val purchaseDate: Long? = null,
     val purchasePrice: Double = 0.0,
