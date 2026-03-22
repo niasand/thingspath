@@ -1,13 +1,11 @@
 package com.thingspath.ui.screen.additem
 
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,15 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.thingspath.ui.component.ItemImagePlaceholder
+import com.thingspath.ui.component.MultiImageEditor
 import android.app.DatePickerDialog
 import android.widget.DatePicker
-import java.io.File
 import java.util.Calendar
 import com.thingspath.util.ItemImageStorage
 
@@ -47,7 +41,7 @@ fun AddItemScreen(
     ) { uri: Uri? ->
         uri?.let {
             val storedPath = ItemImageStorage.saveToAlbum(context, it)
-            viewModel.onImagePathChange(storedPath)
+            if (storedPath != null) viewModel.addImage(storedPath)
         }
     }
 
@@ -101,17 +95,17 @@ fun AddItemScreen(
         } else {
             AddItemForm(
                 state = state,
-                onNameChange = { viewModel.onNameChange(it) },
-                onLocationChange = { viewModel.onLocationChange(it) },
-                onPurchaseDateChange = { viewModel.onPurchaseDateChange(it) },
-                onPurchasePriceChange = { viewModel.onPurchasePriceChange(it) },
-                onUsageDaysChange = { viewModel.onUsageDaysChange(it) },
-                onNoteChange = { viewModel.onNoteChange(it) },
-                onTagInputChange = { viewModel.onTagInputChange(it) },
-                onAddTag = { viewModel.addTag() },
-                onRemoveTag = { viewModel.removeTag(it) },
-                onImagePickerClick = { imagePickerLauncher.launch("image/*") },
-                onImageDeleteClick = { viewModel.onImagePathChange(null) },
+                onNameChange = viewModel::onNameChange,
+                onLocationChange = viewModel::onLocationChange,
+                onPurchaseDateChange = viewModel::onPurchaseDateChange,
+                onPurchasePriceChange = viewModel::onPurchasePriceChange,
+                onUsageDaysChange = viewModel::onUsageDaysChange,
+                onNoteChange = viewModel::onNoteChange,
+                onTagInputChange = viewModel::onTagInputChange,
+                onAddTag = viewModel::addTag,
+                onRemoveTag = viewModel::removeTag,
+                onAddImage = { imagePickerLauncher.launch("image/*") },
+                onDeleteImage = viewModel::removeImage,
                 onSave = {
                     viewModel.saveItem(
                         onSuccess = {
@@ -143,8 +137,8 @@ fun AddItemForm(
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: (String) -> Unit,
-    onImagePickerClick: () -> Unit,
-    onImageDeleteClick: () -> Unit,
+    onAddImage: () -> Unit,
+    onDeleteImage: (Int) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
@@ -169,17 +163,19 @@ fun AddItemForm(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Image Section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            EditableImageView(
-                imagePath = state.imagePath,
-                itemName = state.name,
-                onImagePickerClick = onImagePickerClick,
-                onImageDeleteClick = onImageDeleteClick
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "Photos",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            MultiImageEditor(
+                imagePaths = state.imagePaths,
+                onAddImage = onAddImage,
+                onDeleteImage = onDeleteImage,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(108.dp)
             )
         }
 
@@ -328,68 +324,3 @@ fun AddItemForm(
     }
 }
 
-@Composable
-fun EditableImageView(
-    imagePath: String?,
-    itemName: String?,
-    onImagePickerClick: () -> Unit,
-    onImageDeleteClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onImagePickerClick)
-    ) {
-        if (imagePath != null) {
-            AsyncImage(
-                model = imagePath,
-                contentDescription = "Item image",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            ItemImagePlaceholder(
-                name = itemName,
-                modifier = Modifier.fillMaxSize(),
-                shape = MaterialTheme.shapes.medium,
-                maxLines = 2
-            )
-        }
-
-        // Action buttons overlay
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (imagePath != null) {
-                IconButton(
-                    onClick = onImageDeleteClick,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete image",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-            IconButton(
-                onClick = onImagePickerClick,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-            ) {
-                Icon(
-                    imageVector = if (imagePath != null) Icons.Default.Edit else Icons.Default.AddAPhoto,
-                    contentDescription = if (imagePath != null) "Change image" else "Add image"
-                )
-            }
-        }
-    }
-}

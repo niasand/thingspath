@@ -14,7 +14,8 @@ data class ItemDetailState(
     val note: String = "",
     val tags: List<String> = emptyList(),
     val tagInput: String = "",
-    val imagePath: String? = null,
+    val imagePaths: List<String> = emptyList(),
     val showDeleteDialog: Boolean = false,
-    val isImageFullScreen: Boolean = false
+    val isImageFullScreen: Boolean = false,
+    val fullScreenImageIndex: Int = 0
 )

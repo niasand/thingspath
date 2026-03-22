@@ -8,7 +8,8 @@ data class ItemEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val imagePath: String? = null,
+    val imagePath: String? = null,       // kept for backward compat
+    val imagePaths: String = "",         // pipe-separated image paths
     val location: String? = null,
     val purchaseDate: Long? = null,
     val purchasePrice: Double = 0.0,

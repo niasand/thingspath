@@ -49,4 +49,11 @@ object DatabaseMigrations {
             database.addColumnIfNotExists("items", "location", "location TEXT")
         }
     }
+
+    /** v3 → v4：新增 imagePaths 列（竖线分隔的多图路径） */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.addColumnIfNotExists("items", "imagePaths", "imagePaths TEXT NOT NULL DEFAULT ''")
+        }
+    }
 }

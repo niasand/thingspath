@@ -114,8 +114,12 @@ class AddItemViewModel @Inject constructor(
         _state.update { it.copy(tags = it.tags - tag) }
     }
 
-    fun onImagePathChange(path: String?) {
-        _state.update { it.copy(imagePath = path) }
+    fun addImage(path: String) {
+        _state.update { it.copy(imagePaths = it.imagePaths + path) }
+    }
+
+    fun removeImage(index: Int) {
+        _state.update { it.copy(imagePaths = it.imagePaths.toMutableList().also { list -> list.removeAt(index) }) }
     }
 
     fun validateForm(): Boolean {
@@ -143,7 +147,8 @@ class AddItemViewModel @Inject constructor(
                     usageDays = _state.value.usageDays.toIntOrNull(),
                     note = _state.value.note.trim().takeIf { it.isNotBlank() },
                     tags = _state.value.tags,
-                    imagePath = _state.value.imagePath
+                    imagePaths = _state.value.imagePaths,
+                    imagePath = _state.value.imagePaths.firstOrNull()
                 )
                 addItemUseCase(item)
                 _state.update { it.copy(isLoading = false) }

@@ -54,7 +54,7 @@ class ItemDetailViewModel @Inject constructor(
                             usageDays = usageDaysStr,
                             note = loadedItem.note ?: "",
                             tags = loadedItem.tags,
-                            imagePath = loadedItem.imagePath
+                            imagePaths = loadedItem.imagePaths
                         )
                     }
                 } ?: run {
@@ -127,8 +127,12 @@ class ItemDetailViewModel @Inject constructor(
         _state.update { it.copy(tags = it.tags - tag) }
     }
 
-    fun onImagePathChange(path: String?) {
-        _state.update { it.copy(imagePath = path) }
+    fun addImage(path: String) {
+        _state.update { it.copy(imagePaths = it.imagePaths + path) }
+    }
+
+    fun removeImage(index: Int) {
+        _state.update { it.copy(imagePaths = it.imagePaths.toMutableList().also { list -> list.removeAt(index) }) }
     }
 
     fun toggleEditMode() {
@@ -143,8 +147,8 @@ class ItemDetailViewModel @Inject constructor(
         _state.update { it.copy(showDeleteDialog = false) }
     }
 
-    fun showFullScreenImage() {
-        _state.update { it.copy(isImageFullScreen = true) }
+    fun showFullScreenImage(index: Int = 0) {
+        _state.update { it.copy(isImageFullScreen = true, fullScreenImageIndex = index) }
     }
 
     fun hideFullScreenImage() {
@@ -169,7 +173,8 @@ class ItemDetailViewModel @Inject constructor(
                         usageDays = _state.value.usageDays.toIntOrNull(),
                         note = _state.value.note.trim().takeIf { it.isNotBlank() },
                         tags = _state.value.tags,
-                        imagePath = _state.value.imagePath
+                        imagePaths = _state.value.imagePaths,
+                        imagePath = _state.value.imagePaths.firstOrNull()
                     )
                     updateItemUseCase(updatedItem)
                     _state.update { it.copy(isEditing = false, item = updatedItem) }

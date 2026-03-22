@@ -107,10 +107,17 @@ class ItemRepository @Inject constructor(
 
 // Extension functions for mapping between Entity and Domain model
 private fun ItemEntity.toDomainModel(): Item {
+    // Backward compat: if imagePaths is empty but imagePath exists, migrate to list
+    val paths = if (imagePaths.isBlank()) {
+        listOfNotNull(imagePath)
+    } else {
+        imagePaths.split("|").filter { it.isNotBlank() }
+    }
     return Item(
         id = id,
         name = name,
-        imagePath = imagePath,
+        imagePath = paths.firstOrNull(),
+        imagePaths = paths,
         location = location,
         purchaseDate = purchaseDate,
         purchasePrice = purchasePrice,
@@ -123,10 +130,13 @@ private fun ItemEntity.toDomainModel(): Item {
 }
 
 private fun Item.toEntity(): ItemEntity {
+    // Merge: if imagePaths is empty but imagePath is set (old backup restore), use imagePath as list
+    val paths = if (imagePaths.isEmpty() && imagePath != null) listOf(imagePath) else imagePaths
     return ItemEntity(
         id = id,
         name = name,
-        imagePath = imagePath,
+        imagePath = paths.firstOrNull(),
+        imagePaths = paths.joinToString("|"),
         location = location,
         purchaseDate = purchaseDate,
         purchasePrice = purchasePrice,

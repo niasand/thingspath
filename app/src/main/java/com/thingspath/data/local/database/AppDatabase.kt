@@ -7,7 +7,7 @@ import com.thingspath.data.local.entity.ItemEntity
 
 @Database(
     entities = [ItemEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
