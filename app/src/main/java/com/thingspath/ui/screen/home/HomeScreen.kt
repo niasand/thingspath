@@ -33,6 +33,11 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +60,33 @@ fun HomeScreen(
     }
 
     val listState = rememberLazyListState()
+
+    // Over-scroll to next page
+    val density = LocalDensity.current
+    val overScrollThresholdPx = with(density) { 80.dp.toPx() }
+    var overScrollAccumulator by remember { mutableFloatStateOf(0f) }
+    val canGoNext = rememberUpdatedState(state.currentPage < state.pageCount - 1)
+    val goToNextPage = rememberUpdatedState(viewModel::goToNextPage)
+    val overScrollNestedScroll = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (available.y < 0f && canGoNext.value) {
+                    overScrollAccumulator += -available.y
+                    if (overScrollAccumulator >= overScrollThresholdPx) {
+                        overScrollAccumulator = 0f
+                        goToNextPage.value()
+                    }
+                } else if (available.y > 0f || consumed.y != 0f) {
+                    overScrollAccumulator = 0f
+                }
+                return Offset.Zero
+            }
+        }
+    }
 
     // Scroll to top when signal changes
     LaunchedEffect(state.scrollToTopSignal) {
@@ -311,7 +343,7 @@ fun HomeScreen(
             if (state.items.isEmpty()) {
                 EmptyState(modifier = Modifier.fillMaxSize())
             } else {
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1f).nestedScroll(overScrollNestedScroll)) {
                     ListView(
                         items = pagedItems,
                         isSelectionMode = state.isSelectionMode,
