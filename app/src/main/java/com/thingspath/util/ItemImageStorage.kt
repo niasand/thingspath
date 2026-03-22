@@ -12,6 +12,44 @@ import java.io.File
 object ItemImageStorage {
     private const val ALBUM_NAME = "ThingsPath"
 
+    /**
+     * 保存图片到应用私有目录，避免在相册中创建重复图片
+     */
+    fun saveToAppStorage(context: Context, sourceUri: Uri): String? {
+        return try {
+            // 优先保存到应用私有目录，不污染相册
+            saveToPrivateDir(context, sourceUri)
+        } catch (e: Exception) {
+            try {
+                saveToCache(context, sourceUri)
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    /**
+     * 保存到应用私有 Pictures 目录（推荐）
+     * 图片只在应用内部可见，不会出现在相册中
+     */
+    private fun saveToPrivateDir(context: Context, sourceUri: Uri): String? {
+        val privatePicsDir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "items").apply { mkdirs() }
+        val mimeType = context.contentResolver.getType(sourceUri) ?: "image/jpeg"
+        val extension = mimeTypeToExtension(mimeType)
+        val destFile = File(privatePicsDir, "${System.currentTimeMillis()}.$extension")
+
+        context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            destFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: return null
+
+        return destFile.absolutePath
+    }
+
+    /**
+     * 保存到相册（Public Pictures）- 仅用于导出/分享功能
+     */
     fun saveToAlbum(context: Context, sourceUri: Uri): String? {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

@@ -40,7 +40,7 @@ fun AddItemScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val storedPath = ItemImageStorage.saveToAlbum(context, it)
+            val storedPath = ItemImageStorage.saveToAppStorage(context, it)
             if (storedPath != null) viewModel.addImage(storedPath)
         }
     }
