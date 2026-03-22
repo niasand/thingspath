@@ -33,6 +33,12 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +61,60 @@ fun HomeScreen(
     }
 
     val listState = rememberLazyListState()
+
+    // 边缘滑动翻页
+    val density = LocalDensity.current
+    // 20dp：一次滑动到底部后的 overflow 拖拽即可触发，无需第二次滑动
+    val overScrollThresholdPx = with(density) { 20.dp.toPx() }
+    var overScrollAccumulator by remember { mutableFloatStateOf(0f) }
+    val canGoNext = rememberUpdatedState(state.currentPage < state.pageCount - 1)
+    val canGoPrev = rememberUpdatedState(state.currentPage > 0)
+    val goToNextPage = rememberUpdatedState(viewModel::goToNextPage)
+    val goToPrevPage = rememberUpdatedState(viewModel::goToPreviousPage)
+    val overScrollNestedScroll = remember {
+        object : NestedScrollConnection {
+            // 拖拽：到达边界后继续拖动触发翻页
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.Drag) return Offset.Zero
+
+                // 底部：手指上滑（available.y < 0），列表已到底 → 翻下一页
+                if (available.y < 0f && !listState.canScrollForward) {
+                    overScrollAccumulator += -available.y
+                    if (overScrollAccumulator >= overScrollThresholdPx && canGoNext.value) {
+                        overScrollAccumulator = 0f
+                        goToNextPage.value()
+                    }
+                    return available // 消费，阻止 overscroll 动画抢走 delta
+                }
+
+                // 顶部：手指下滑（available.y > 0），列表已到顶 → 翻上一页
+                if (available.y > 0f && !listState.canScrollBackward) {
+                    overScrollAccumulator += available.y
+                    if (overScrollAccumulator >= overScrollThresholdPx && canGoPrev.value) {
+                        overScrollAccumulator = 0f
+                        goToPrevPage.value()
+                    }
+                    return available // 消费
+                }
+
+                overScrollAccumulator = 0f
+                return Offset.Zero
+            }
+
+            // 快速甩动：fling 打到边界后剩余 velocity 直接触发翻页
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (available.y < 0f && !listState.canScrollForward && canGoNext.value) {
+                    goToNextPage.value()
+                    return available
+                }
+                if (available.y > 0f && !listState.canScrollBackward && canGoPrev.value) {
+                    goToPrevPage.value()
+                    return available
+                }
+                return Velocity.Zero
+            }
+        }
+    }
 
     // Scroll to top when signal changes
     LaunchedEffect(state.scrollToTopSignal) {
@@ -311,7 +371,7 @@ fun HomeScreen(
             if (state.items.isEmpty()) {
                 EmptyState(modifier = Modifier.fillMaxSize())
             } else {
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1f).nestedScroll(overScrollNestedScroll)) {
                     ListView(
                         items = pagedItems,
                         isSelectionMode = state.isSelectionMode,
