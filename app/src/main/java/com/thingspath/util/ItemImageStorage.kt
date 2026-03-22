@@ -7,10 +7,25 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import java.io.File
 
 object ItemImageStorage {
     private const val ALBUM_NAME = "ThingsPath"
+
+    /**
+     * Creates a temporary content URI for the camera app to write a captured photo into.
+     * Uses FileProvider so the camera app is granted write access to app's cache directory.
+     */
+    fun createCameraImageUri(context: Context): Uri {
+        val cacheDir = File(context.cacheDir, "camera_images").apply { mkdirs() }
+        val imageFile = File(cacheDir, "camera_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            imageFile
+        )
+    }
 
     fun saveToAlbum(context: Context, sourceUri: Uri): String? {
         return try {

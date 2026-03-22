@@ -51,6 +51,9 @@ fun ItemDetailScreen(
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior() // Use pinned scroll behavior
 
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -58,6 +61,44 @@ fun ItemDetailScreen(
             val storedPath = ItemImageStorage.saveToAlbum(context, it)
             if (storedPath != null) viewModel.addImage(storedPath)
         }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            pendingCameraUri?.let { uri ->
+                val storedPath = ItemImageStorage.saveToAlbum(context, uri)
+                if (storedPath != null) viewModel.addImage(storedPath)
+            }
+        }
+        pendingCameraUri = null
+    }
+
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Add Photo") },
+            text = { Text("Choose a source") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImageSourceDialog = false
+                    val uri = ItemImageStorage.createCameraImageUri(context)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
+                }) {
+                    Text("Camera")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showImageSourceDialog = false
+                    imagePickerLauncher.launch("image/*")
+                }) {
+                    Text("Gallery")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -140,7 +181,7 @@ fun ItemDetailScreen(
                 onTagInputChange = { viewModel.onTagInputChange(it) },
                 onAddTag = { viewModel.addTag() },
                 onRemoveTag = { viewModel.removeTag(it) },
-                onAddImage = { imagePickerLauncher.launch("image/*") },
+                onAddImage = { showImageSourceDialog = true },
                 onDeleteImage = viewModel::removeImage,
                 onImageClick = { index -> viewModel.showFullScreenImage(index) },
                 modifier = Modifier
