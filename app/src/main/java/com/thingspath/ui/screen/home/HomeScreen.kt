@@ -69,21 +69,26 @@ fun HomeScreen(
     val goToNextPage = rememberUpdatedState(viewModel::goToNextPage)
     val overScrollNestedScroll = remember {
         object : NestedScrollConnection {
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset {
-                if (available.y < 0f && canGoNext.value) {
+            // 用 onPreScroll 而非 onPostScroll：
+            // LazyColumn 内部的 overscroll 弹性动画会在 onPostScroll 之前
+            // 消耗掉超出底部的 delta，导致 available.y 到达我们时已为 0。
+            // 在 onPreScroll 阶段，通过 listState.canScrollForward 判断是否
+            // 已到底部，提前累积 delta，绕开 overscroll 的拦截。
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < 0f
+                    && !listState.canScrollForward
+                    && source == NestedScrollSource.Drag
+                    && canGoNext.value
+                ) {
                     overScrollAccumulator += -available.y
                     if (overScrollAccumulator >= overScrollThresholdPx) {
                         overScrollAccumulator = 0f
                         goToNextPage.value()
                     }
-                } else if (available.y > 0f || consumed.y != 0f) {
+                } else if (available.y > 0f || listState.canScrollForward) {
                     overScrollAccumulator = 0f
                 }
-                return Offset.Zero
+                return Offset.Zero // 不消费，让 LazyColumn 正常处理（含 overscroll 动画）
             }
         }
     }
