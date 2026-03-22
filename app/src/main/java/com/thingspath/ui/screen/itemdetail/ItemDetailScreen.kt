@@ -38,6 +38,11 @@ import android.widget.DatePicker
 import java.text.SimpleDateFormat
 import java.util.*
 import com.thingspath.util.ItemImageStorage
+import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
+import java.io.File
+import android.Manifest
+import android.content.pm.PackageManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,12 +56,54 @@ fun ItemDetailScreen(
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior() // Use pinned scroll behavior
 
+    // Gallery picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             val storedPath = ItemImageStorage.saveToAppStorage(context, it)
             if (storedPath != null) viewModel.addImage(storedPath)
+        }
+    }
+
+    // Camera capture launcher
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            photoUri?.let { uri ->
+                val albumPath = ItemImageStorage.saveToAlbum(context, uri)
+                if (albumPath != null) {
+                    viewModel.addImage(albumPath)
+                }
+            }
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val tempFile = File.createTempFile("camera_", ".jpg", context.cacheDir)
+            photoUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+            photoUri?.let { cameraLauncher.launch(it) }
+        }
+    }
+
+    // Image source handlers
+    val onAddFromGallery = { imagePickerLauncher.launch("image/*") }
+    val onCaptureFromCamera = {
+        when {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                val tempFile = File.createTempFile("camera_", ".jpg", context.cacheDir)
+                photoUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+                photoUri?.let { cameraLauncher.launch(it) }
+            }
+            else -> {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 
@@ -140,7 +187,8 @@ fun ItemDetailScreen(
                 onTagInputChange = { viewModel.onTagInputChange(it) },
                 onAddTag = { viewModel.addTag() },
                 onRemoveTag = { viewModel.removeTag(it) },
-                onAddImage = { imagePickerLauncher.launch("image/*") },
+                onAddFromGallery = { onAddFromGallery() },
+                onCaptureFromCamera = { onCaptureFromCamera() },
                 onDeleteImage = viewModel::removeImage,
                 onImageClick = { index -> viewModel.showFullScreenImage(index) },
                 modifier = Modifier
@@ -186,7 +234,8 @@ fun ItemDetailContent(
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: (String) -> Unit,
-    onAddImage: () -> Unit,
+    onAddFromGallery: () -> Unit,
+    onCaptureFromCamera: () -> Unit,
     onDeleteImage: (Int) -> Unit,
     onImageClick: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -205,7 +254,8 @@ fun ItemDetailContent(
                 )
                 MultiImageEditor(
                     imagePaths = state.imagePaths,
-                    onAddImage = onAddImage,
+                    onAddFromGallery = onAddFromGallery,
+                    onCaptureFromCamera = onCaptureFromCamera,
                     onDeleteImage = onDeleteImage,
                     modifier = Modifier
                         .fillMaxWidth()

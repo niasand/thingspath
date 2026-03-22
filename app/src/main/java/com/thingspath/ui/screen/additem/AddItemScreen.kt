@@ -24,6 +24,12 @@ import android.app.DatePickerDialog
 import android.widget.DatePicker
 import java.util.Calendar
 import com.thingspath.util.ItemImageStorage
+import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
+import java.io.File
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,12 +42,43 @@ fun AddItemScreen(
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
+    // Gallery picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             val storedPath = ItemImageStorage.saveToAppStorage(context, it)
             if (storedPath != null) viewModel.addImage(storedPath)
+        }
+    }
+
+    // Camera capture launcher
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            photoUri?.let { uri ->
+                // Save captured photo to album and get the album path
+                val albumPath = ItemImageStorage.saveToAlbum(context, uri)
+                if (albumPath != null) {
+                    viewModel.addImage(albumPath)
+                }
+            }
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Create temp file for camera capture
+            val tempFile = File.createTempFile("camera_", ".jpg", context.cacheDir)
+            photoUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+            photoUri?.let { cameraLauncher.launch(it) }
+        } else {
+            // Show permission denied message
         }
     }
 
@@ -104,7 +141,19 @@ fun AddItemScreen(
                 onTagInputChange = viewModel::onTagInputChange,
                 onAddTag = viewModel::addTag,
                 onRemoveTag = viewModel::removeTag,
-                onAddImage = { imagePickerLauncher.launch("image/*") },
+                onAddFromGallery = { imagePickerLauncher.launch("image/*") },
+                onCaptureFromCamera = {
+                    when {
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                            val tempFile = File.createTempFile("camera_", ".jpg", context.cacheDir)
+                            photoUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+                            photoUri?.let { cameraLauncher.launch(it) }
+                        }
+                        else -> {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
+                },
                 onDeleteImage = viewModel::removeImage,
                 onSave = {
                     viewModel.saveItem(
@@ -137,7 +186,8 @@ fun AddItemForm(
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: (String) -> Unit,
-    onAddImage: () -> Unit,
+    onAddFromGallery: () -> Unit,
+    onCaptureFromCamera: () -> Unit,
     onDeleteImage: (Int) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
@@ -171,7 +221,8 @@ fun AddItemForm(
             )
             MultiImageEditor(
                 imagePaths = state.imagePaths,
-                onAddImage = onAddImage,
+                onAddFromGallery = onAddFromGallery,
+                onCaptureFromCamera = onCaptureFromCamera,
                 onDeleteImage = onDeleteImage,
                 modifier = Modifier
                     .fillMaxWidth()

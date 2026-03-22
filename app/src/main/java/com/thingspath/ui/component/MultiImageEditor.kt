@@ -9,9 +9,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,15 +25,20 @@ private val THUMB_SIZE = 100.dp
 
 /**
  * Horizontal scrollable list of image thumbnails with add/delete controls.
+ * Supports both gallery picker and camera capture.
  * Used in both AddItemScreen (add mode) and ItemDetailScreen (edit mode).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MultiImageEditor(
     imagePaths: List<String>,
-    onAddImage: () -> Unit,
+    onAddFromGallery: () -> Unit,
+    onCaptureFromCamera: () -> Unit,
     onDeleteImage: (index: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showBottomSheet by remember { mutableStateOf(false) }
+
     LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -44,7 +51,63 @@ fun MultiImageEditor(
             )
         }
         item {
-            AddImageCell(onClick = onAddImage)
+            AddImageCell(onClick = { showBottomSheet = true })
+        }
+    }
+
+    // Bottom sheet for selecting image source
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "添加图片",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // Gallery option
+                ListItem(
+                    headlineContent = { Text("从相册选择") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.PhotoLibrary,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showBottomSheet = false
+                        onAddFromGallery()
+                    }
+                )
+
+                // Camera option
+                ListItem(
+                    headlineContent = { Text("拍照") },
+                    supportingContent = { Text("照片将保存到 ThingsPath 相册") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showBottomSheet = false
+                        onCaptureFromCamera()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
