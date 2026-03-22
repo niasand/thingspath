@@ -118,7 +118,7 @@ fun AddItemScreen(
                 }
             )
         },
-        modifier = modifier.imePadding() // Add imePadding to Scaffold
+        modifier = modifier
     ) { paddingValues ->
         if (state.isLoading) {
             Box(
@@ -168,6 +168,7 @@ fun AddItemScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .imePadding()
                     .verticalScroll(scrollState)
             )
         }

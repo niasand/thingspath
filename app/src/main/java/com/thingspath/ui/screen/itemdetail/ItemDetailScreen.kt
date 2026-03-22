@@ -108,7 +108,7 @@ fun ItemDetailScreen(
     }
 
     Scaffold(
-        modifier = modifier.imePadding().nestedScroll(scrollBehavior.nestedScrollConnection), // Add imePadding
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text("Item Details") },
@@ -194,6 +194,7 @@ fun ItemDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .imePadding()
                     .verticalScroll(scrollState)
             )
         }
