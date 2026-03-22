@@ -61,34 +61,42 @@ fun HomeScreen(
 
     val listState = rememberLazyListState()
 
-    // Over-scroll to next page
+    // 边缘滑动翻页
     val density = LocalDensity.current
     val overScrollThresholdPx = with(density) { 80.dp.toPx() }
     var overScrollAccumulator by remember { mutableFloatStateOf(0f) }
     val canGoNext = rememberUpdatedState(state.currentPage < state.pageCount - 1)
+    val canGoPrev = rememberUpdatedState(state.currentPage > 0)
     val goToNextPage = rememberUpdatedState(viewModel::goToNextPage)
+    val goToPrevPage = rememberUpdatedState(viewModel::goToPreviousPage)
     val overScrollNestedScroll = remember {
         object : NestedScrollConnection {
-            // 用 onPreScroll 而非 onPostScroll：
-            // LazyColumn 内部的 overscroll 弹性动画会在 onPostScroll 之前
-            // 消耗掉超出底部的 delta，导致 available.y 到达我们时已为 0。
-            // 在 onPreScroll 阶段，通过 listState.canScrollForward 判断是否
-            // 已到底部，提前累积 delta，绕开 overscroll 的拦截。
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < 0f
-                    && !listState.canScrollForward
-                    && source == NestedScrollSource.Drag
-                    && canGoNext.value
-                ) {
+                if (source != NestedScrollSource.Drag) return Offset.Zero
+
+                // 底部：手指上滑（available.y < 0），列表已到底 → 翻下一页
+                if (available.y < 0f && !listState.canScrollForward) {
                     overScrollAccumulator += -available.y
-                    if (overScrollAccumulator >= overScrollThresholdPx) {
+                    if (overScrollAccumulator >= overScrollThresholdPx && canGoNext.value) {
                         overScrollAccumulator = 0f
                         goToNextPage.value()
                     }
-                } else if (available.y > 0f || listState.canScrollForward) {
-                    overScrollAccumulator = 0f
+                    return available // 消费事件，阻止 overscroll 动画抢走 delta
                 }
-                return Offset.Zero // 不消费，让 LazyColumn 正常处理（含 overscroll 动画）
+
+                // 顶部：手指下滑（available.y > 0），列表已到顶 → 翻上一页
+                if (available.y > 0f && !listState.canScrollBackward) {
+                    overScrollAccumulator += available.y
+                    if (overScrollAccumulator >= overScrollThresholdPx && canGoPrev.value) {
+                        overScrollAccumulator = 0f
+                        goToPrevPage.value()
+                    }
+                    return available // 消费事件
+                }
+
+                // 正常滚动中，重置累积器
+                overScrollAccumulator = 0f
+                return Offset.Zero
             }
         }
     }
