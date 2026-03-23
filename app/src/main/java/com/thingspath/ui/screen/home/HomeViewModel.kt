@@ -49,11 +49,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             itemRepository.restoreDataIfNeeded()
         }
-        observePageSize()
+        observeSettings()
         loadItems()
     }
 
-    private fun observePageSize() {
+    private fun observeSettings() {
         viewModelScope.launch {
             settingsRepository.pageSize
                 .distinctUntilChanged()
@@ -69,6 +69,15 @@ class HomeViewModel @Inject constructor(
                             currentPage = 0,
                             pageCount = pageCount
                         )
+                    }
+                }
+        }
+        viewModelScope.launch {
+            settingsRepository.infiniteScroll
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    _state.update { current ->
+                        current.copy(infiniteScroll = enabled)
                     }
                 }
         }

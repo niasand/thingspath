@@ -31,7 +31,8 @@ data class SettingsUiState(
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
     val infoMessage: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val infiniteScroll: Boolean = true
 )
 
 @HiltViewModel
@@ -48,8 +49,18 @@ class SettingsViewModel @Inject constructor(
         initialValue = ""
     )
 
+    val infiniteScroll = settingsRepository.infiniteScroll.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = true
+    )
+
     suspend fun saveApiKey(key: String) {
         settingsRepository.saveApiKey(key)
+    }
+
+    suspend fun saveInfiniteScroll(enabled: Boolean) {
+        settingsRepository.saveInfiniteScroll(enabled)
     }
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -93,6 +104,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val apiKey by viewModel.apiKey.collectAsState()
+    val infiniteScroll by viewModel.infiniteScroll.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     var inputKey by remember(apiKey) { mutableStateOf(apiKey ?: "") }
     val scope = rememberCoroutineScope()
@@ -154,7 +166,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             Button(
-                onClick = { 
+                onClick = {
                     scope.launch {
                         viewModel.saveApiKey(inputKey)
                         onBack()
@@ -163,6 +175,43 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Save")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "界面设置",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "启用无限滑动",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "列表无限滚动，无需分页",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Switch(
+                    checked = infiniteScroll,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            viewModel.saveInfiniteScroll(enabled)
+                        }
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

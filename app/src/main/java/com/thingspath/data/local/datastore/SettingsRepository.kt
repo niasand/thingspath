@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -21,6 +22,7 @@ class SettingsRepository @Inject constructor(
 ) {
     private val API_KEY = stringPreferencesKey("silicon_flow_api_key")
     private val PAGE_SIZE = intPreferencesKey("page_size")
+    private val INFINITE_SCROLL = booleanPreferencesKey("infinite_scroll")
 
     val apiKey: Flow<String?> = context.dataStore.data
         .map { preferences ->
@@ -32,6 +34,11 @@ class SettingsRepository @Inject constructor(
             preferences[PAGE_SIZE] ?: 10
         }
 
+    val infiniteScroll: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[INFINITE_SCROLL] ?: true
+        }
+
     suspend fun saveApiKey(key: String) {
         context.dataStore.edit { preferences ->
             preferences[API_KEY] = key
@@ -41,6 +48,12 @@ class SettingsRepository @Inject constructor(
     suspend fun savePageSize(size: Int) {
         context.dataStore.edit { preferences ->
             preferences[PAGE_SIZE] = size
+        }
+    }
+
+    suspend fun saveInfiniteScroll(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[INFINITE_SCROLL] = enabled
         }
     }
 }
