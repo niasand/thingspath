@@ -413,6 +413,10 @@ class HomeViewModel @Inject constructor(
                 val comparator = compareByDescending<Item> { it.updatedAt }
                 if (ascending) items.sortedWith(comparator.reversed()) else items.sortedWith(comparator)
             }
+            CreatedAt -> {
+                val comparator = compareByDescending<Item> { it.createdAt }
+                if (ascending) items.sortedWith(comparator.reversed()) else items.sortedWith(comparator)
+            }
         }
     }
 

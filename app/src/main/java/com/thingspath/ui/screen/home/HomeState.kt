@@ -6,7 +6,8 @@ enum class HomeSortField {
     PurchaseDate,
     Name,
     UsageDays,
-    UpdatedAt
+    UpdatedAt,
+    CreatedAt
 }
 
 data class HomeState(

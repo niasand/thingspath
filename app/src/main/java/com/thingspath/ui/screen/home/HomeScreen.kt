@@ -234,6 +234,21 @@ fun HomeScreen(
                                 showSortMenu = false
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Add Date") },
+                            trailingIcon = {
+                                if (state.sortField == HomeSortField.CreatedAt) {
+                                    Icon(
+                                        if (state.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            onClick = {
+                                viewModel.selectSort(HomeSortField.CreatedAt)
+                                showSortMenu = false
+                            }
+                        )
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
