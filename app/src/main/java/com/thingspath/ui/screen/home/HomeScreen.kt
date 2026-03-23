@@ -56,67 +56,7 @@ fun HomeScreen(
     var showAIDialog by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
 
-    val pagedItems = remember(state.items, state.pageSize, state.currentPage) {
-        val start = (state.currentPage * state.pageSize).coerceAtLeast(0)
-        if (start >= state.items.size) emptyList()
-        else state.items.drop(start).take(state.pageSize)
-    }
-
     val listState = rememberLazyListState()
-
-    // 边缘滑动翻页
-    val density = LocalDensity.current
-    // 20dp：一次滑动到底部后的 overflow 拖拽即可触发，无需第二次滑动
-    val overScrollThresholdPx = with(density) { 20.dp.toPx() }
-    var overScrollAccumulator by remember { mutableFloatStateOf(0f) }
-    val canGoNext = rememberUpdatedState(state.currentPage < state.pageCount - 1)
-    val canGoPrev = rememberUpdatedState(state.currentPage > 0)
-    val goToNextPage = rememberUpdatedState(viewModel::goToNextPage)
-    val goToPrevPage = rememberUpdatedState(viewModel::goToPreviousPage)
-    val overScrollNestedScroll = remember {
-        object : NestedScrollConnection {
-            // 拖拽：到达边界后继续拖动触发翻页
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (source != NestedScrollSource.Drag) return Offset.Zero
-
-                // 底部：手指上滑（available.y < 0），列表已到底 → 翻下一页
-                if (available.y < 0f && !listState.canScrollForward) {
-                    overScrollAccumulator += -available.y
-                    if (overScrollAccumulator >= overScrollThresholdPx && canGoNext.value) {
-                        overScrollAccumulator = 0f
-                        goToNextPage.value()
-                    }
-                    return available // 消费，阻止 overscroll 动画抢走 delta
-                }
-
-                // 顶部：手指下滑（available.y > 0），列表已到顶 → 翻上一页
-                if (available.y > 0f && !listState.canScrollBackward) {
-                    overScrollAccumulator += available.y
-                    if (overScrollAccumulator >= overScrollThresholdPx && canGoPrev.value) {
-                        overScrollAccumulator = 0f
-                        goToPrevPage.value()
-                    }
-                    return available // 消费
-                }
-
-                overScrollAccumulator = 0f
-                return Offset.Zero
-            }
-
-            // 快速甩动：fling 打到边界后剩余 velocity 直接触发翻页
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (available.y < 0f && !listState.canScrollForward && canGoNext.value) {
-                    goToNextPage.value()
-                    return available
-                }
-                if (available.y > 0f && !listState.canScrollBackward && canGoPrev.value) {
-                    goToPrevPage.value()
-                    return available
-                }
-                return Velocity.Zero
-            }
-        }
-    }
 
     // Scroll to top when signal changes
     LaunchedEffect(state.scrollToTopSignal) {
@@ -125,11 +65,6 @@ fun HomeScreen(
             kotlinx.coroutines.delay(100)
             listState.scrollToItem(0)
         }
-    }
-
-    // Scroll to top when page changes
-    LaunchedEffect(state.currentPage) {
-        listState.scrollToItem(0)
     }
 
     LaunchedEffect(state.infoMessage) {
@@ -258,40 +193,22 @@ fun HomeScreen(
             }
         },
         bottomBar = {
-            Column {
-                if (state.exportSuccess || state.importSuccess || state.errorMessage != null || state.infoMessage != null) {
-                    Snackbar(
-                        action = {
-                            TextButton(onClick = { viewModel.dismissMessage() }) {
-                                Text("Dismiss")
-                            }
-                        },
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            when {
-                                state.infoMessage != null -> state.infoMessage!!
-                                state.exportSuccess -> "Export successful"
-                                state.importSuccess -> "Import successful"
-                                else -> state.errorMessage ?: "Unknown error"
-                            }
-                        )
-                    }
-                }
-
-                if (state.items.isNotEmpty() && state.pageCount > 0) {
-                    PaginationBar(
-                        totalCount = state.totalItemCount,
-                        currentPage = state.currentPage,
-                        pageCount = state.pageCount,
-                        pageSize = state.pageSize,
-                        onPrevious = { viewModel.goToPreviousPage() },
-                        onNext = { viewModel.goToNextPage() },
-                        onPageSelected = { viewModel.goToPage(it) },
-                        onPageSizeSelected = { viewModel.setPageSize(it) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+            if (state.exportSuccess || state.importSuccess || state.errorMessage != null || state.infoMessage != null) {
+                Snackbar(
+                    action = {
+                        TextButton(onClick = { viewModel.dismissMessage() }) {
+                            Text("Dismiss")
+                        }
+                    },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        when {
+                            state.infoMessage != null -> state.infoMessage!!
+                            state.exportSuccess -> "Export successful"
+                            state.importSuccess -> "Import successful"
+                            else -> state.errorMessage ?: "Unknown error"
+                        }
                     )
                 }
             }
@@ -382,9 +299,9 @@ fun HomeScreen(
             if (state.items.isEmpty()) {
                 EmptyState(modifier = Modifier.fillMaxSize())
             } else {
-                Box(modifier = Modifier.weight(1f).nestedScroll(overScrollNestedScroll)) {
+                Box(modifier = Modifier.weight(1f)) {
                     ListView(
-                        items = pagedItems,
+                        items = state.items,
                         isSelectionMode = state.isSelectionMode,
                         selectedIds = state.selectedItemIds,
                         onItemClick = { id ->
@@ -427,151 +344,6 @@ fun HomeScreen(
     }
 }
 
-
-@Composable
-fun PaginationBar(
-    totalCount: Int,
-    currentPage: Int,
-    pageCount: Int,
-    pageSize: Int,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onPageSelected: (Int) -> Unit,
-    onPageSizeSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (pageCount <= 0) return
-
-    var expanded by remember { mutableStateOf(false) }
-    val pageItems = remember(currentPage, pageCount) {
-        buildPageItems(currentPage = currentPage, pageCount = pageCount)
-    }
-
-    Surface(
-        modifier = modifier,
-        tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-        ) {
-            Text(
-                text = "共 $totalCount 条",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                OutlinedIconButton(
-                    onClick = onPrevious,
-                    enabled = currentPage > 0,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronLeft,
-                        contentDescription = null
-                    )
-                }
-
-                pageItems.forEach { pageItem ->
-                    if (pageItem == null) {
-                        Text(
-                            text = "…",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
-                    } else {
-                        val selected = pageItem == currentPage
-                        OutlinedButton(
-                            onClick = { onPageSelected(pageItem) },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                            ),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                                contentColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            ),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Text(
-                                text = "${pageItem + 1}",
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
-                    }
-                }
-
-                OutlinedIconButton(
-                    onClick = onNext,
-                    enabled = currentPage < pageCount - 1,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null
-                    )
-                }
-            }
-
-            Box {
-                OutlinedButton(
-                    onClick = { expanded = true },
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text(
-                        text = "${pageSize}/p",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    listOf(10, 20, 50).forEach { size ->
-                        DropdownMenuItem(
-                            text = { Text("$size/p") },
-                            onClick = {
-                                onPageSizeSelected(size)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun buildPageItems(currentPage: Int, pageCount: Int): List<Int?> {
-    if (pageCount <= 0) return emptyList()
-    val maxVisible = 5
-    val windowStart = (currentPage - 2).coerceIn(0, (pageCount - maxVisible).coerceAtLeast(0))
-    val windowEndExclusive = (windowStart + maxVisible).coerceAtMost(pageCount)
-
-    val result = mutableListOf<Int?>()
-    if (windowStart > 0) result.add(null)
-    for (i in windowStart until windowEndExclusive) result.add(i)
-    if (windowEndExclusive < pageCount) result.add(null)
-    return result
-}
 
 @Composable
 fun AIInputDialog(
