@@ -514,7 +514,7 @@ fun PaginationBar(
                     modifier = Modifier.height(32.dp)
                 ) {
                     Text(
-                        text = "${pageSize}/页",
+                        text = "${pageSize}/p",
                         style = MaterialTheme.typography.labelMedium
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -530,7 +530,7 @@ fun PaginationBar(
                 ) {
                     listOf(10, 20, 50).forEach { size ->
                         DropdownMenuItem(
-                            text = { Text("$size/页") },
+                            text = { Text("$size/p") },
                             onClick = {
                                 onPageSizeSelected(size)
                                 expanded = false
