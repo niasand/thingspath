@@ -23,10 +23,10 @@ fun ItemImagePlaceholder(
     name: String?,
     modifier: Modifier = Modifier,
     shape: Shape = CircleShape,
-    maxLines: Int = 2
+    maxLines: Int = 2,
+    backgroundColor: Color = Color(0xFFE6F4FF),
+    textColor: Color = Color(0xFF000000)
 ) {
-    val backgroundColor = Color(0xFFE6F4FF)
-    val textColor = Color(0xFF000000)
     val displayName = name?.trim().takeUnless { it.isNullOrEmpty() } ?: "物品"
 
     Surface(

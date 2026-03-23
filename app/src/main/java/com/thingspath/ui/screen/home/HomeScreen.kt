@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.thingspath.data.model.Item
@@ -315,7 +316,8 @@ fun HomeScreen(
                 }
             }
         },
-        modifier = modifier
+        modifier = modifier,
+        containerColor = Color(0xFFE3F2FD) // Light blue background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -794,6 +796,7 @@ fun SwipeableItemCard(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
                         .background(color)
                         .padding(horizontal = 20.dp),
                     contentAlignment = androidx.compose.ui.Alignment.CenterEnd
@@ -817,5 +820,3 @@ fun SwipeableItemCard(
         )
     }
 }
-
-
