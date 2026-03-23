@@ -175,8 +175,8 @@ fun ItemCard(
                         
                         if (item.tags.isNotEmpty()) {
                             Text(
-                                text = "#${item.tags}",
-                                style = MaterialTheme.typography.labelSmall, // Reduced from bodySmall
+                                text = item.tags.joinToString(" ") { "#$it" },
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.tertiary,
                                 overflow = TextOverflow.Ellipsis,
                                 maxLines = 1
