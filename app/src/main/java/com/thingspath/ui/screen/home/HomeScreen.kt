@@ -137,13 +137,6 @@ fun HomeScreen(
         }
     }
 
-    if (state.showStatistics) {
-        StatisticsDialog(
-            items = state.items, // Show stats for current filtered list
-            onDismiss = { viewModel.toggleStatistics() }
-        )
-    }
-
     Scaffold(
         topBar = {
             if (state.isSelectionMode) {
@@ -241,9 +234,6 @@ fun HomeScreen(
                             }
                         )
                     }
-                    IconButton(onClick = onNavigateToStatistics) {
-                        Icon(Icons.Default.Analytics, contentDescription = "Statistics")
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -339,7 +329,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .clickable { viewModel.toggleStatistics() }
+                    .clickable { onNavigateToStatistics() }
             )
 
             // Search Bar
@@ -524,7 +514,7 @@ fun PaginationBar(
                     modifier = Modifier.height(32.dp)
                 ) {
                     Text(
-                        text = "${pageSize}/页",
+                        text = "${pageSize}/p",
                         style = MaterialTheme.typography.labelMedium
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -540,14 +530,11 @@ fun PaginationBar(
                 ) {
                     listOf(10, 20, 50).forEach { size ->
                         DropdownMenuItem(
-                            text = { Text("$size/页") },
+                            text = { Text("$size/p") },
                             onClick = {
                                 onPageSizeSelected(size)
                                 expanded = false
-                            },
-                            leadingIcon = if (pageSize == size) {
-                                { Icon(Icons.Default.Check, contentDescription = null) }
-                            } else null
+                            }
                         )
                     }
                 }
