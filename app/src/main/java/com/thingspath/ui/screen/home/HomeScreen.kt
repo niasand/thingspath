@@ -25,7 +25,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 
 import androidx.compose.material.icons.filled.Clear
-
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
@@ -47,6 +47,7 @@ fun HomeScreen(
     onAddItemClick: () -> Unit,
     onItemClick: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToStatistics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
@@ -180,7 +181,7 @@ fun HomeScreen(
                         onDismissRequest = { showSortMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("购买日期") },
+                            text = { Text("Purchase Date") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.PurchaseDate) {
                                     Icon(
@@ -195,7 +196,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("物品名称") },
+                            text = { Text("Item Name") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.Name) {
                                     Icon(
@@ -210,7 +211,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("使用天数") },
+                            text = { Text("Usage Days") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.UsageDays) {
                                     Icon(
@@ -225,7 +226,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("更新时间") },
+                            text = { Text("Updated At") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.UpdatedAt) {
                                     Icon(
@@ -239,6 +240,9 @@ fun HomeScreen(
                                 showSortMenu = false
                             }
                         )
+                    }
+                    IconButton(onClick = onNavigateToStatistics) {
+                        Icon(Icons.Default.Analytics, contentDescription = "Statistics")
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -631,7 +635,8 @@ fun StatisticsHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                 Text(
@@ -643,11 +648,11 @@ fun StatisticsHeader(
                     style = MaterialTheme.typography.headlineMedium
                 )
             }
-            
+
             VerticalDivider(
                 modifier = Modifier.height(40.dp)
             )
-            
+
             Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                 Text(
                     text = "Total Value",
@@ -658,6 +663,16 @@ fun StatisticsHeader(
                     style = MaterialTheme.typography.headlineMedium
                 )
             }
+
+            VerticalDivider(
+                modifier = Modifier.height(40.dp)
+            )
+
+            Icon(
+                imageVector = Icons.Default.Analytics,
+                contentDescription = "View Statistics",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+            )
         }
     }
 }

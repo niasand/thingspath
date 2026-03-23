@@ -8,8 +8,8 @@ import androidx.navigation.navArgument
 import com.thingspath.ui.screen.additem.AddItemScreen
 import com.thingspath.ui.screen.home.HomeScreen
 import com.thingspath.ui.screen.itemdetail.ItemDetailScreen
-
 import com.thingspath.ui.screen.settings.SettingsScreen
+import com.thingspath.ui.screen.statistics.StatisticsScreen
 
 @Composable
 fun AppNavigation(
@@ -30,12 +30,21 @@ fun AppNavigation(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToStatistics = {
+                    navController.navigate(Screen.Statistics.route)
                 }
             )
         }
 
         composable(route = Screen.Settings.route) {
             SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.Statistics.route) {
+            StatisticsScreen(
                 onBack = { navController.popBackStack() }
             )
         }
