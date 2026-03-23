@@ -134,14 +134,18 @@ class HomeViewModel @Inject constructor(
             .collect { (allTags, displayedItems, _, shouldScrollToTop) ->
                  val totalCount = displayedItems.size // Count of filtered items
                  val totalPrice = displayedItems.sumOf { it.purchasePrice }
-                 
-                 _state.update { 
+                 val allTagsSet = allTags.toHashSet()
+
+                 _state.update {
                      val pageCount = calculatePageCount(displayedItems.size, it.pageSize)
                      val clampedPage = clampPage(it.currentPage, pageCount)
-                     
+                     // 过滤掉已不存在的 tag，防止选中 tag 被删除后列表永久为空
+                     val validSelectedTags = it.selectedTags.intersect(allTagsSet)
+
                      it.copy(
                          items = displayedItems,
                          allTags = allTags,
+                         selectedTags = validSelectedTags,
                          isLoading = false,
                          totalItemCount = totalCount,
                          totalPrice = totalPrice,
