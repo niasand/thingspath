@@ -168,11 +168,12 @@ fun CompactPieChart(
             }
         }
 
-        // Legend - compact layout
+        // Legend - compact layout with scroll support
         Column(
             modifier = Modifier
                 .padding(start = 8.dp)
-                .weight(1f),
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             data.forEach { (_, color, label) ->
