@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Trash2 } from 'lucide-react';
+import { MapPin, Calendar } from 'lucide-react';
 import type { Item } from '../types/item';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { formatPrice, formatDailyCost, calculateDailyCost } from '../utils/numberUtils';
@@ -15,12 +15,10 @@ interface Props {
   onDelete?: () => void;
 }
 
-export default function ItemCard({ item, selectionMode, selected, onSelect, onDelete }: Props) {
+export default function ItemCard({ item, selectionMode, selected, onSelect }: Props) {
   const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const [swiped, setSwiped] = useState(false);
-  const touchStartX = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,36 +36,19 @@ export default function ItemCard({ item, selectionMode, selected, onSelect, onDe
   const handleClick = () => {
     if (selectionMode && onSelect) {
       onSelect();
-    } else if (!swiped) {
+    } else {
       navigate(`/item/${item.id}`);
     }
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl mb-3 group">
-      {/* Swipe delete background */}
-      <div className={`absolute inset-y-0 right-0 bg-error rounded-r-2xl flex items-center justify-end pr-5 transition-all duration-300 ${swiped ? 'w-full' : 'w-0'}`}>
-        <button onClick={onDelete} className="text-white p-2">
-          <Trash2 size={24} />
-        </button>
-      </div>
-
-      {/* Card */}
-      <div
-        className={`relative bg-surface rounded-2xl shadow-sm hover:shadow-md transition-all duration-200
-          ${selected ? 'ring-2 ring-primary' : ''}
-          ${swiped ? '-translate-x-20' : 'translate-x-0'}
-          ${selectionMode ? 'cursor-pointer' : 'cursor-pointer'}
-          hover:border-l-[3px] hover:border-l-primary`}
-        onClick={handleClick}
-        onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
-        onTouchEnd={(e) => {
-          const diff = touchStartX.current - e.changedTouches[0].clientX;
-          if (diff > 60) setSwiped(true);
-          else if (diff < -30) setSwiped(false);
-        }}
-      >
-        <div className="flex p-4 gap-3.5">
+    <div
+      className={`relative bg-surface rounded-2xl shadow-sm hover:shadow-md transition-all duration-200
+        ${selected ? 'ring-2 ring-primary' : ''}
+        cursor-pointer hover:border-l-[3px] hover:border-l-primary`}
+      onClick={handleClick}
+    >
+      <div className="flex p-4 gap-3.5">
           {/* Image */}
           <div className="shrink-0">
             {imageUrl && !imageError ? (
@@ -157,11 +138,5 @@ export default function ItemCard({ item, selectionMode, selected, onSelect, onDe
           )}
         </div>
       </div>
-    </div>
   );
-}
-
-function useRef<T>(initialValue: T) {
-  const [ref] = useState({ current: initialValue });
-  return ref as React.RefObject<T>;
 }

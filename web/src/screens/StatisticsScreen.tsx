@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import StatisticsHeader from '../components/StatisticsHeader';
+import SkeletonStats, { SkeletonChart } from '../components/SkeletonStats';
 import TopBar from '../components/TopBar';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { TagStat, PriceRangeStat, LocationStat } from '../types/statistics';
@@ -51,30 +52,42 @@ export default function StatisticsScreen() {
     <div>
       <TopBar title="统计" />
 
-      <StatisticsHeader totalItems={state.totalItemCount} totalPrice={state.totalPrice} />
-
-      {!hasData ? (
-        <div className="text-center py-12 text-sm" style={{ color: 'var(--text-secondary)' }}>暂无数据</div>
+      {state.isLoading ? (
+        <>
+          <SkeletonStats />
+          <div className="space-y-4">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+        </>
       ) : (
-        <div className="space-y-4">
-          {tagStats.length > 0 && (
-            <ChartCard title="标签分布" total={state.items.length}>
-              <DonutChart data={tagStats} />
-            </ChartCard>
-          )}
+        <>
+          <StatisticsHeader totalItems={state.totalItemCount} totalPrice={state.totalPrice} />
 
-          {priceStats.length > 0 && (
-            <ChartCard title="价格区间" total={state.items.filter(i => i.purchasePrice > 0).length}>
-              <DonutChart data={priceStats.map(r => ({ name: r.range, value: r.count, color: r.color }))} />
-            </ChartCard>
-          )}
+          {!hasData ? (
+            <div className="text-center py-12 text-sm" style={{ color: 'var(--text-secondary)' }}>暂无数据</div>
+          ) : (
+            <div className="space-y-4">
+              {tagStats.length > 0 && (
+                <ChartCard title="标签分布" total={state.items.length}>
+                  <DonutChart data={tagStats} />
+                </ChartCard>
+              )}
 
-          {locationStats.length > 0 && (
-            <ChartCard title="位置分布" total={state.items.filter(i => i.location).length}>
-              <DonutChart data={locationStats} />
-            </ChartCard>
+              {priceStats.length > 0 && (
+                <ChartCard title="价格区间" total={state.items.filter(i => i.purchasePrice > 0).length}>
+                  <DonutChart data={priceStats.map(r => ({ name: r.range, value: r.count, color: r.color }))} />
+                </ChartCard>
+              )}
+
+              {locationStats.length > 0 && (
+                <ChartCard title="位置分布" total={state.items.filter(i => i.location).length}>
+                  <DonutChart data={locationStats} />
+                </ChartCard>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

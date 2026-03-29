@@ -12,6 +12,8 @@ import EmptyState from '../components/EmptyState';
 import StatisticsHeader from '../components/StatisticsHeader';
 import AIInputDialog from '../components/AIInputDialog';
 import ItemCard from '../components/ItemCard';
+import SwipeableItem from '../components/SwipeableItem';
+import SkeletonCard from '../components/SkeletonCard';
 import { CheckSquare, XSquare, Trash2 } from 'lucide-react';
 
 export default function HomeScreen() {
@@ -163,19 +165,24 @@ export default function HomeScreen() {
       )}
 
       {/* Item list */}
-      {filteredItems.length === 0 && !state.isLoading ? (
+      {state.isLoading ? (
+        Array.from({ length: 5 }, (_, i) => <SkeletonCard key={`sk-${i}`} />)
+      ) : filteredItems.length === 0 ? (
         <EmptyState />
       ) : (
         <>
           {pageItems.map(item => (
-            <ItemCard
+            <SwipeableItem
               key={item.id}
-              item={item}
-              selectionMode={state.isSelectionMode}
-              selected={state.selectedItemIds.has(item.id)}
-              onSelect={() => dispatch({ type: 'TOGGLE_ITEM_SELECTION', id: item.id })}
               onDelete={() => dispatch({ type: 'SHOW_DELETE_DIALOG', item })}
-            />
+            >
+              <ItemCard
+                item={item}
+                selectionMode={state.isSelectionMode}
+                selected={state.selectedItemIds.has(item.id)}
+                onSelect={() => dispatch({ type: 'TOGGLE_ITEM_SELECTION', id: item.id })}
+              />
+            </SwipeableItem>
           ))}
 
           {/* Pagination - compact pill style */}

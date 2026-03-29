@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { Home, BarChart3, Settings, Moon, Sun } from 'lucide-react';
+import PageTransition from './PageTransition';
 
 const NAV_ITEMS = [
   { path: '/', label: '首页', icon: Home },
@@ -101,7 +103,13 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Content */}
       <main className="flex-1 pb-24 md:pb-6">
-        <div className="container-app py-4">{children}</div>
+        <div className="container-app py-4">
+          <AnimatePresence mode="wait">
+            <PageTransition key={location.pathname}>
+              {children}
+            </PageTransition>
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* Mobile Bottom Nav */}
