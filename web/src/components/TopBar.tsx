@@ -15,12 +15,32 @@ export default function TopBar({ title, showBack, actions }: Props) {
       {showBack && (
         <button
           onClick={() => navigate(-1)}
-          className="p-2 -ml-2 rounded-xl hover:bg-gray-light text-text-secondary transition-colors"
+          className="p-2 -ml-2 cursor-pointer"
+          style={{
+            borderRadius: 'var(--radius-sm)',
+            color: 'var(--text-secondary)',
+            background: 'transparent',
+            border: 'none',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--bg-surface-hover)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
         >
           <ArrowLeft size={20} />
         </button>
       )}
-      <h1 className="flex-1 text-xl font-bold text-text truncate">{title}</h1>
+      <h1
+        className="flex-1 text-xl font-bold truncate"
+        style={{ color: 'var(--text-primary)' }}
+      >
+        {title}
+      </h1>
       {actions}
     </div>
   );

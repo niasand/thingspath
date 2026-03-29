@@ -83,6 +83,28 @@ export default function AddItemScreen() {
     e.target.value = '';
   };
 
+  const glassCard = {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'var(--glass-blur)',
+    WebkitBackdropFilter: 'var(--glass-blur)',
+    border: '1px solid var(--glass-border)',
+    borderRadius: '20px',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    borderRadius: '14px',
+    fontSize: '14px',
+    color: 'var(--text-primary)',
+    background: 'var(--glass-input-bg, rgba(255,255,255,0.06))',
+    backdropFilter: 'var(--glass-blur)',
+    WebkitBackdropFilter: 'var(--glass-blur)',
+    border: '1px solid var(--glass-border)',
+    outline: 'none',
+    transition: 'all 0.2s ease',
+  };
+
   return (
     <div>
       <TopBar
@@ -92,8 +114,12 @@ export default function AddItemScreen() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-1.5 rounded-xl text-sm font-medium bg-primary text-white
-                       hover:bg-primary-dark transition-colors disabled:opacity-50"
+            className="px-5 py-1.5 rounded-xl text-sm font-medium text-white transition-all duration-200
+                       disabled:opacity-50 hover:scale-105 active:scale-95"
+            style={{
+              background: 'var(--gradient-accent)',
+              boxShadow: '0 4px 16px var(--shadow-accent, rgba(124,58,237,0.3))',
+            }}
           >
             {saving ? '保存中...' : '保存'}
           </button>
@@ -103,17 +129,25 @@ export default function AddItemScreen() {
       <div className="space-y-4">
         {/* Images */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-text">图片</label>
-          <div className="flex gap-2 flex-wrap">
+          <label className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            图片
+          </label>
+          <div className="flex gap-3 flex-wrap">
             {imagePaths.map((path, i) => (
               <ImagePreview key={path} path={path} name={name} onRemove={() =>
                 setImagePaths(prev => prev.filter((_, j) => j !== i))
               } />
             ))}
             {imagePaths.length < 5 && (
-              <label className="w-20 h-20 rounded-xl border-2 border-dashed border-border
-                               flex flex-col items-center justify-center cursor-pointer
-                               hover:border-primary/40 hover:text-primary text-text-secondary transition-colors">
+              <label
+                className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer
+                           transition-all duration-200 hover:scale-105"
+                style={{
+                  border: '2px dashed var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                  background: 'var(--glass-input-bg, rgba(255,255,255,0.03))',
+                }}
+              >
                 <span className="text-lg">+</span>
                 <span className="text-[10px]">添加图片</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
@@ -122,101 +156,117 @@ export default function AddItemScreen() {
           </div>
         </div>
 
-        {/* Name */}
-        <FormField
-          label="物品名称" required
-          icon={<Hash size={16} />}
-          value={name}
-          onChange={setName}
-          placeholder="例如：索尼WH-1000XM5"
-          error={errors.name}
-        />
-
-        {/* Location */}
-        <FormField
-          label="存放位置"
-          icon={<MapPin size={16} />}
-          value={location}
-          onChange={setLocation}
-          placeholder="例如：卧室床头柜"
-        />
-
-        {/* Purchase Date */}
-        <FormField
-          label="购买日期"
-          icon={<Calendar size={16} />}
-          value={purchaseDate}
-          onChange={setPurchaseDate}
-          type="date"
-        />
-
-        {/* Price + Usage Days */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Form Card Container */}
+        <div className="space-y-4 p-5" style={glassCard}>
+          {/* Name */}
           <FormField
-            label="购买价格"
-            icon={<DollarSign size={16} />}
-            value={purchasePrice}
-            onChange={setPurchasePrice}
-            placeholder="0.00"
-            type="number"
-          />
-          <FormField
-            label="使用天数"
+            label="物品名称" required
             icon={<Hash size={16} />}
-            value={usageDays}
-            onChange={setUsageDays}
-            placeholder="自动计算"
-            type="number"
+            value={name}
+            onChange={setName}
+            placeholder="例如：索尼WH-1000XM5"
+            error={errors.name}
+            inputStyle={inputStyle}
           />
-        </div>
 
-        {/* Note */}
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-1.5 text-sm font-medium text-text">
-            <FileText size={14} className="text-text-secondary" />
-            备注
-          </label>
-          <textarea
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            placeholder="添加备注..."
-            rows={3}
-            className="w-full px-3 py-2.5 rounded-xl border border-border/60 bg-surface text-sm
-                       placeholder:text-text-tertiary focus:outline-none focus:border-primary/40 focus:ring-2
-                       focus:ring-primary/10 resize-none transition-all"
+          {/* Location */}
+          <FormField
+            label="存放位置"
+            icon={<MapPin size={16} />}
+            value={location}
+            onChange={setLocation}
+            placeholder="例如：卧室床头柜"
+            inputStyle={inputStyle}
           />
-        </div>
 
-        {/* Tags */}
-        <TagInput tags={tags} onChange={setTags} />
+          {/* Purchase Date */}
+          <FormField
+            label="购买日期"
+            icon={<Calendar size={16} />}
+            value={purchaseDate}
+            onChange={setPurchaseDate}
+            type="date"
+            inputStyle={inputStyle}
+          />
+
+          {/* Price + Usage Days */}
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              label="购买价格"
+              icon={<DollarSign size={16} />}
+              value={purchasePrice}
+              onChange={setPurchasePrice}
+              placeholder="0.00"
+              type="number"
+              inputStyle={inputStyle}
+            />
+            <FormField
+              label="使用天数"
+              icon={<Hash size={16} />}
+              value={usageDays}
+              onChange={setUsageDays}
+              placeholder="自动计算"
+              type="number"
+              inputStyle={inputStyle}
+            />
+          </div>
+
+          {/* Note */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+              <FileText size={14} style={{ color: 'var(--text-secondary)' }} />
+              备注
+            </label>
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="添加备注..."
+              rows={3}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none transition-all duration-200"
+              style={{
+                color: 'var(--text-primary)',
+                background: 'var(--glass-input-bg, rgba(255,255,255,0.06))',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Tags */}
+          <TagInput tags={tags} onChange={setTags} />
+        </div>
       </div>
     </div>
   );
 }
 
 function FormField({
-  label, required, icon, value, onChange, placeholder, type = 'text', error,
+  label, required, icon, value, onChange, placeholder, type = 'text', error, inputStyle,
 }: {
   label: string; required?: boolean; icon: React.ReactNode;
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string; error?: string;
+  inputStyle?: React.CSSProperties;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center gap-1.5 text-sm font-medium text-text">
+      <label className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
         {icon}
         {label}
-        {required && <span className="text-error">*</span>}
+        {required && <span style={{ color: 'var(--color-error)' }}>*</span>}
       </label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-3 py-2.5 rounded-xl border text-sm bg-surface
-                   placeholder:text-text-tertiary focus:outline-none focus:ring-2 transition-all
-                   ${error ? 'border-error focus:border-error focus:ring-error/10' : 'border-border/60 focus:border-primary/40 focus:ring-primary/10'}`}
+        style={{
+          ...inputStyle,
+          borderColor: error ? 'var(--color-error)' : undefined,
+        }}
       />
-      {error && <p className="text-xs text-error">{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--color-error)' }}>{error}</p>}
     </div>
   );
 }
@@ -236,17 +286,32 @@ function ImagePreview({ path, name, onRemove }: { path: string; name: string; on
   return (
     <div className="relative group">
       {url && !err ? (
-        <img src={url} alt="" className="w-20 h-20 rounded-xl object-cover" />
+        <img
+          src={url}
+          alt=""
+          className="w-20 h-20 rounded-2xl object-cover"
+          style={{ border: '1px solid var(--glass-border)' }}
+        />
       ) : (
-        <div className="w-20 h-20 rounded-xl flex items-center justify-center text-xl font-semibold"
-             style={{ backgroundColor: '#E8DEF8', color: '#6650a4' }}>
+        <div
+          className="w-20 h-20 rounded-2xl flex items-center justify-center text-xl font-semibold"
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--color-accent)',
+          }}
+        >
           {name.charAt(0).toUpperCase() || '?'}
         </div>
       )}
       <button
         onClick={onRemove}
-        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white
-                   flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white
+                   flex items-center justify-center opacity-0 group-hover:opacity-100
+                   transition-all duration-200 text-xs"
+        style={{ background: 'var(--color-error)' }}
       >
         x
       </button>

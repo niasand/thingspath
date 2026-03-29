@@ -31,15 +31,51 @@ export default function TagInput({ tags, onChange, maxTags = 5 }: Props) {
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-text">标签</label>
-      <div className="flex flex-wrap gap-2 p-2.5 rounded-xl bg-surface border border-border/60 min-h-[44px] items-center">
+      <label
+        className="block text-sm font-medium"
+        style={{ color: 'var(--text-primary)' }}
+      >
+        标签
+      </label>
+      <div
+        className="flex flex-wrap gap-2 p-2.5 min-h-[44px] items-center"
+        style={{
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-surface)',
+          backdropFilter: 'blur(var(--blur-sm))',
+          WebkitBackdropFilter: 'blur(var(--blur-sm))',
+          border: '1px solid var(--border-glass)',
+          transition: 'all 0.2s ease',
+        }}
+      >
         {tags.map(tag => (
           <span
             key={tag}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium"
+            style={{
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--accent-soft)',
+              color: 'var(--accent)',
+              border: '1px solid var(--accent-light)',
+              transition: 'all 0.2s ease',
+            }}
           >
             {tag}
-            <button onClick={() => removeTag(tag)} className="hover:bg-primary/20 rounded-full p-0.5">
+            <button
+              onClick={() => removeTag(tag)}
+              className="cursor-pointer"
+              style={{
+                borderRadius: 'var(--radius-full)',
+                padding: '1px',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--accent-soft-hover)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
               <X size={12} />
             </button>
           </span>
@@ -53,12 +89,32 @@ export default function TagInput({ tags, onChange, maxTags = 5 }: Props) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={tags.length === 0 ? '输入标签后回车...' : ''}
-              className="flex-1 min-w-[80px] text-sm outline-none bg-transparent placeholder:text-text-tertiary"
+              className="flex-1 min-w-[80px] text-sm outline-none bg-transparent"
+              style={{
+                color: 'var(--text-primary)',
+                background: 'transparent',
+              }}
             />
             {input.trim() && (
               <button
                 onClick={addTag}
-                className="p-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                className="cursor-pointer"
+                style={{
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '4px',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--border-glass)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--accent-soft-hover)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'var(--accent-soft)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
               >
                 <Plus size={14} />
               </button>

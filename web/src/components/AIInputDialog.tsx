@@ -29,20 +29,92 @@ export default function AIInputDialog({ open, loading, onSubmit, onClose }: Prop
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-md animate-in">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(var(--blur-sm))',
+          WebkitBackdropFilter: 'blur(var(--blur-sm))',
+        }}
+        onClick={handleClose}
+      />
+
+      {/* Bottom sheet on mobile, centered dialog on desktop */}
+      <div
+        className="relative w-full max-w-md"
+        style={{
+          background: 'var(--bg-elevated)',
+          backdropFilter: 'blur(var(--blur-lg))',
+          WebkitBackdropFilter: 'blur(var(--blur-lg))',
+          border: '1px solid var(--border-glass)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          animation: 'bottomSheetIn 0.3s ease',
+        }}
+      >
+        <style>{`
+          @keyframes bottomSheetIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @media (min-width: 768px) {
+            @keyframes bottomSheetIn {
+              from { opacity: 0; transform: scale(0.95) translateY(8px); }
+              to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+          }
+        `}</style>
+
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/40">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center">
-              <Sparkles size={16} className="text-secondary" />
+        <div
+          className="flex items-center justify-between p-4"
+          style={{ borderBottom: '1px solid var(--border-glass)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 flex items-center justify-center"
+              style={{
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--accent-soft)',
+                border: '1px solid var(--border-glass)',
+              }}
+            >
+              <Sparkles size={16} style={{ color: 'var(--accent)' }} />
             </div>
             <div>
-              <h3 className="font-semibold text-text text-sm">AI 智能添加</h3>
-              <p className="text-[11px] text-text-secondary">描述物品，AI 自动提取信息</p>
+              <h3
+                className="font-semibold text-sm"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                AI 智能添加
+              </h3>
+              <p
+                className="text-[11px]"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                描述物品，AI 自动提取信息
+              </p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-gray-light text-text-secondary">
+          <button
+            onClick={handleClose}
+            className="cursor-pointer"
+            style={{
+              borderRadius: 'var(--radius-sm)',
+              padding: '6px',
+              color: 'var(--text-secondary)',
+              background: 'transparent',
+              border: 'none',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--bg-surface-hover)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
             <X size={18} />
           </button>
         </div>
@@ -54,12 +126,32 @@ export default function AIInputDialog({ open, loading, onSubmit, onClose }: Prop
             onChange={e => setText(e.target.value)}
             placeholder="例如：昨天在京东买了一个索尼WH-1000XM5降噪耳机，花了2299元，放在卧室的床头柜上"
             rows={4}
-            className="w-full p-3 rounded-xl border border-border/60 bg-bg-page text-sm resize-none
-                       placeholder:text-text-tertiary focus:outline-none focus:border-primary/40 focus:ring-2
-                       focus:ring-primary/10 transition-all"
+            className="w-full p-3 rounded-xl text-sm resize-none outline-none"
+            style={{
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-glass)',
+              color: 'var(--text-primary)',
+              backdropFilter: 'blur(var(--blur-sm))',
+              WebkitBackdropFilter: 'blur(var(--blur-sm))',
+              borderRadius: 'var(--radius-md)',
+              transition: 'all 0.2s ease',
+            }}
+            onFocus={e => {
+              e.currentTarget.style.borderColor = 'var(--border-focus)';
+              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+              e.currentTarget.style.background = 'var(--bg-elevated)';
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = 'var(--border-glass)';
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.background = 'var(--bg-input)';
+            }}
             disabled={loading}
           />
-          <p className="text-[11px] text-text-tertiary leading-relaxed">
+          <p
+            className="text-[11px] leading-relaxed"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
             支持识别：物品名称、价格、购买日期、存放位置、分类标签、备注信息。支持多个物品同时识别。
           </p>
         </div>
@@ -69,13 +161,29 @@ export default function AIInputDialog({ open, loading, onSubmit, onClose }: Prop
           <button
             onClick={handleSubmit}
             disabled={!text.trim() || loading}
-            className="w-full py-2.5 rounded-xl text-sm font-medium bg-primary text-white
-                       hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                       flex items-center justify-center gap-2"
+            className="w-full py-2.5 text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
+            style={{
+              borderRadius: 'var(--radius-md)',
+              background: !text.trim() || loading
+                ? 'var(--accent-soft)'
+                : 'linear-gradient(135deg, var(--accent), var(--accent-light))',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              boxShadow: !text.trim() || loading ? 'none' : 'var(--shadow-glow)',
+              transition: 'all 0.2s ease',
+              opacity: !text.trim() || loading ? 0.5 : 1,
+              cursor: !text.trim() || loading ? 'not-allowed' : 'pointer',
+            }}
           >
             {loading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div
+                  className="w-4 h-4 rounded-full animate-spin"
+                  style={{
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: 'white',
+                  }}
+                />
                 AI 分析中...
               </>
             ) : (

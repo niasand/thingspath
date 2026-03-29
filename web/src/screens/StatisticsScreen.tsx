@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import StatisticsHeader from '../components/StatisticsHeader';
 import TopBar from '../components/TopBar';
-import { CHART_COLORS, PRICE_RANGE_COLORS } from '../utils/constants';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { TagStat, PriceRangeStat, LocationStat } from '../types/statistics';
+
+const GLASS_CHART_COLORS = ['#7C3AED', '#A855F7', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6'];
 
 export default function StatisticsScreen() {
   const { state } = useApp();
@@ -15,14 +16,14 @@ export default function StatisticsScreen() {
     return [...map.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
-      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[i % CHART_COLORS.length] }));
+      .map(([name, value], i) => ({ name, value, color: GLASS_CHART_COLORS[i % GLASS_CHART_COLORS.length] }));
   }, [state.items]);
 
   const priceStats = useMemo<PriceRangeStat[]>(() => {
     const ranges: PriceRangeStat[] = [
-      { range: '< ¥1,000', min: 0, max: 1000, count: 0, color: PRICE_RANGE_COLORS[0] },
-      { range: '¥1,000 - 3,000', min: 1000, max: 3000, count: 0, color: PRICE_RANGE_COLORS[1] },
-      { range: '> ¥3,000', min: 3000, max: Infinity, count: 0, color: PRICE_RANGE_COLORS[2] },
+      { range: '< \u00a51,000', min: 0, max: 1000, count: 0, color: GLASS_CHART_COLORS[3] },
+      { range: '\u00a51,000 - 3,000', min: 1000, max: 3000, count: 0, color: GLASS_CHART_COLORS[2] },
+      { range: '> \u00a53,000', min: 3000, max: Infinity, count: 0, color: GLASS_CHART_COLORS[0] },
     ];
     state.items.forEach(item => {
       if (item.purchasePrice <= 0) return;
@@ -41,7 +42,7 @@ export default function StatisticsScreen() {
     return [...map.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
-      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[(i + 4) % CHART_COLORS.length] }));
+      .map(([name, value], i) => ({ name, value, color: GLASS_CHART_COLORS[(i + 5) % GLASS_CHART_COLORS.length] }));
   }, [state.items]);
 
   const hasData = state.items.length > 0;
@@ -53,7 +54,7 @@ export default function StatisticsScreen() {
       <StatisticsHeader totalItems={state.totalItemCount} totalPrice={state.totalPrice} />
 
       {!hasData ? (
-        <div className="text-center py-12 text-text-secondary text-sm">暂无数据</div>
+        <div className="text-center py-12 text-sm" style={{ color: 'var(--text-secondary)' }}>暂无数据</div>
       ) : (
         <div className="space-y-4">
           {tagStats.length > 0 && (
@@ -81,10 +82,29 @@ export default function StatisticsScreen() {
 
 function ChartCard({ title, total, children }: { title: string; total: number; children: React.ReactNode }) {
   return (
-    <div className="bg-surface rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-text">{title}</h3>
-        <span className="text-xs text-text-secondary">{total} 项</span>
+    <div
+      className="p-5 shadow-lg"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '20px',
+        boxShadow: '0 8px 32px var(--shadow-color, rgba(0,0,0,0.08))',
+      }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+        <span
+          className="text-xs px-2.5 py-0.5 rounded-full"
+          style={{
+            background: 'var(--glass-bg)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          {total} 项
+        </span>
       </div>
       {children}
     </div>
@@ -93,7 +113,7 @@ function ChartCard({ title, total, children }: { title: string; total: number; c
 
 function DonutChart({ data }: { data: { name: string; value: number; color: string }[] }) {
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-4">
+    <div className="flex flex-col sm:flex-row items-center gap-5">
       <div className="w-48 h-48 shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -103,9 +123,10 @@ function DonutChart({ data }: { data: { name: string; value: number; color: stri
               cy="50%"
               innerRadius={50}
               outerRadius={80}
-              paddingAngle={2}
+              paddingAngle={3}
               dataKey="value"
               stroke="none"
+              strokeWidth={0}
             >
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
@@ -114,20 +135,31 @@ function DonutChart({ data }: { data: { name: string; value: number; color: stri
             <Tooltip
               formatter={(value: number, name: string) => [value, name]}
               contentStyle={{
-                borderRadius: '12px',
-                border: '1px solid #E0E0E0',
+                borderRadius: '16px',
+                border: '1px solid var(--glass-border)',
                 fontSize: '13px',
+                background: 'var(--glass-bg)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                color: 'var(--text-primary)',
+                boxShadow: '0 8px 32px var(--shadow-color, rgba(0,0,0,0.12))',
               }}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 justify-center sm:justify-start">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center sm:justify-start">
         {data.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-            <span className="text-xs text-text-secondary truncate max-w-[100px]">{item.name}</span>
-            <span className="text-xs font-semibold text-text">{item.value}</span>
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{
+                backgroundColor: item.color,
+                boxShadow: `0 0 8px ${item.color}40`,
+              }}
+            />
+            <span className="text-xs truncate max-w-[100px]" style={{ color: 'var(--text-secondary)' }}>{item.name}</span>
+            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
           </div>
         ))}
       </div>

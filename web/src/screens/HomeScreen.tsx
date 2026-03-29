@@ -87,7 +87,7 @@ export default function HomeScreen() {
   useEffect(() => { setCurrentPage(0); }, [state.searchQuery, state.selectedTags, state.sortField]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Stats Header */}
       <StatisticsHeader totalItems={state.totalItemCount} totalPrice={state.totalPrice} />
 
@@ -104,7 +104,8 @@ export default function HomeScreen() {
           {!state.isSelectionMode ? (
             <button
               onClick={() => dispatch({ type: 'TOGGLE_SELECTION_MODE' })}
-              className="p-2 rounded-xl text-text-secondary hover:bg-gray-light transition-colors"
+              className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
+              style={{ color: 'var(--text-secondary)' }}
               title="多选模式"
             >
               <CheckSquare size={18} />
@@ -113,22 +114,30 @@ export default function HomeScreen() {
             <>
               <button
                 onClick={() => dispatch({ type: 'SELECT_ALL' })}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium text-primary bg-primary/8
-                           hover:bg-primary/15 transition-colors"
+                className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 hover:scale-105"
+                style={{
+                  color: 'var(--color-accent)',
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'var(--glass-blur)',
+                  WebkitBackdropFilter: 'var(--glass-blur)',
+                  border: '1px solid var(--glass-border)',
+                }}
               >
                 全选
               </button>
               {state.selectedItemIds.size > 0 && (
                 <button
                   onClick={() => dispatch({ type: 'SHOW_DELETE_DIALOG', item: null })}
-                  className="p-2 rounded-xl text-error hover:bg-error/10 transition-colors"
+                  className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
+                  style={{ color: 'var(--color-error)' }}
                 >
                   <Trash2 size={18} />
                 </button>
               )}
               <button
                 onClick={() => dispatch({ type: 'TOGGLE_SELECTION_MODE' })}
-                className="p-2 rounded-xl text-text-secondary hover:bg-gray-light transition-colors"
+                className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
+                style={{ color: 'var(--text-secondary)' }}
               >
                 <XSquare size={18} />
               </button>
@@ -139,7 +148,16 @@ export default function HomeScreen() {
 
       {/* Selection info bar */}
       {state.isSelectionMode && state.selectedItemIds.size > 0 && (
-        <div className="px-3 py-2 rounded-xl bg-primary/5 text-xs font-medium text-primary">
+        <div
+          className="px-3 py-2 rounded-xl text-xs font-medium text-center"
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--color-accent)',
+          }}
+        >
           已选择 {state.selectedItemIds.size} 个物品
         </div>
       )}
@@ -160,27 +178,48 @@ export default function HomeScreen() {
             />
           ))}
 
-          {/* Pagination */}
+          {/* Pagination - compact pill style */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 py-3">
               <button
                 onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                 disabled={currentPage === 0}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-text-secondary
-                           bg-surface border border-border/40 hover:bg-gray-light
-                           disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
+                           disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'var(--glass-blur)',
+                  WebkitBackdropFilter: 'var(--glass-blur)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                }}
               >
                 上一页
               </button>
-              <span className="text-xs text-text-tertiary px-2">
+              <span
+                className="px-3 py-1.5 rounded-full text-xs font-medium"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'var(--glass-blur)',
+                  WebkitBackdropFilter: 'var(--glass-blur)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-tertiary)',
+                }}
+              >
                 {currentPage + 1} / {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={currentPage >= totalPages - 1}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-text-secondary
-                           bg-surface border border-border/40 hover:bg-gray-light
-                           disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
+                           disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'var(--glass-blur)',
+                  WebkitBackdropFilter: 'var(--glass-blur)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                }}
               >
                 下一页
               </button>
@@ -218,14 +257,24 @@ export default function HomeScreen() {
       {/* Snackbar */}
       {state.snackbar && (
         <div
-          className={`fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl
-                      text-sm font-medium shadow-lg animate-in ${
-            state.snackbar.type === 'error'
-              ? 'bg-error text-white'
+          className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-2xl
+                     text-sm font-medium shadow-xl backdrop-blur-xl animate-in"
+          style={{
+            background: state.snackbar.type === 'error'
+              ? 'var(--color-error)'
               : state.snackbar.type === 'success'
-                ? 'bg-primary text-white'
-                : 'bg-surface text-text border border-border/40'
-          }`}
+                ? 'var(--glass-bg, rgba(255,255,255,0.15))'
+                : 'var(--glass-bg)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid var(--glass-border)',
+            color: state.snackbar.type === 'success'
+              ? 'var(--text-primary)'
+              : 'white',
+            boxShadow: state.snackbar.type === 'success'
+              ? '0 8px 32px var(--shadow-color, rgba(0,0,0,0.12))'
+              : undefined,
+          }}
         >
           {state.snackbar.message}
         </div>

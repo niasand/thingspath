@@ -1,68 +1,120 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Settings } from 'lucide-react';
+import { Home, BarChart3, Settings, Moon, Sun } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { path: '/', label: '物品', icon: Home },
+  { path: '/', label: '首页', icon: Home },
   { path: '/statistics', label: '统计', icon: BarChart3 },
   { path: '/settings', label: '设置', icon: Settings },
 ];
 
+function useTheme() {
+  const [dark, setDark] = useState(() => {
+    const stored = localStorage.getItem('thingspath-theme');
+    if (stored) return stored === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    localStorage.setItem('thingspath-theme', dark ? 'dark' : 'light');
+  }, [dark]);
+
+  const toggle = () => setDark(d => !d);
+  return { dark, toggle };
+}
+
+export { useTheme };
+
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-
+  const { dark, toggle: toggleTheme } = useTheme();
   const showBottomNav = !['/add', '/item/'].some(p => location.pathname.startsWith(p));
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-[100dvh] flex flex-col" style={{ background: 'var(--bg-app)' }}>
       {/* Top Bar */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-bg-page/85 border-b border-border/50">
-        <div className="max-w-2xl mx-auto flex items-center justify-between px-4 h-14">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-sm">
+      <header
+        className="sticky top-0 z-50"
+        style={{
+          background: 'var(--bg-surface)',
+          backdropFilter: 'blur(var(--blur-lg))',
+          WebkitBackdropFilter: 'blur(var(--blur-lg))',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div className="container-app flex items-center justify-between h-14">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2.5 group">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs tracking-tight"
+              style={{
+                background: 'linear-gradient(135deg, var(--accent), var(--accent-light))',
+                color: 'var(--text-inverse)',
+                boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)',
+              }}
+            >
               TP
             </div>
-            <span className="font-semibold text-text group-hover:text-primary transition-colors">
+            <span
+              className="font-semibold text-sm tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
               ThingsPath
             </span>
           </button>
 
-          {/* Desktop nav icons */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map(item => {
-              const Icon = item.icon;
-              const active = location.pathname === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`p-2.5 rounded-xl transition-all duration-200 ${
-                    active
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-text-secondary hover:bg-gray-light hover:text-text'
-                  }`}
-                >
-                  <Icon size={20} />
-                </button>
-              );
-            })}
-          </nav>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl transition-colors duration-200"
+              style={{ color: 'var(--text-secondary)' }}
+              aria-label={dark ? '切换浅色模式' : '切换深色模式'}
+            >
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {/* Desktop nav */}
+            <nav className="hidden md:flex items-center gap-0.5">
+              {NAV_ITEMS.map(item => {
+                const Icon = item.icon;
+                const active = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200"
+                    style={{
+                      color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                      background: active ? 'var(--accent-soft)' : 'transparent',
+                    }}
+                  >
+                    <Icon size={16} className="inline mr-1 -mt-0.5" />
+                    <span className="hidden lg:inline">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="flex-1 pb-20 md:pb-4">
-        <div className="max-w-2xl mx-auto px-4 py-4">{children}</div>
+      <main className="flex-1 pb-24 md:pb-6">
+        <div className="container-app py-4">{children}</div>
       </main>
 
       {/* Mobile Bottom Nav */}
       {showBottomNav && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl bg-bg-page/90 border-t border-border/50">
-          <div className="flex items-center justify-around py-2 px-4 safe-area-bottom">
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-bottom"
+          style={{
+            background: 'var(--bg-surface-solid)',
+            borderTop: '1px solid var(--border-subtle)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.05)',
+          }}
+        >
+          <div className="flex items-center justify-around px-2 pt-2 pb-1">
             {NAV_ITEMS.map(item => {
               const Icon = item.icon;
               const active = location.pathname === item.path;
@@ -70,12 +122,17 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-all duration-200 ${
-                    active ? 'text-primary' : 'text-text-secondary'
-                  }`}
+                  className="flex flex-col items-center gap-0.5 px-5 py-1 rounded-xl transition-all duration-200 min-w-[56px]"
                 >
-                  <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
-                  <span className={`text-[10px] ${active ? 'font-semibold' : ''}`}>
+                  <Icon
+                    size={21}
+                    strokeWidth={active ? 2.2 : 1.6}
+                    style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)' }}
+                  />
+                  <span
+                    className="text-[10px] font-medium"
+                    style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)' }}
+                  >
                     {item.label}
                   </span>
                 </button>

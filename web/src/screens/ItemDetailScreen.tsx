@@ -112,8 +112,30 @@ export default function ItemDetailScreen() {
     setImagePaths(prev => prev.filter((_, i) => i !== index));
   };
 
-  if (loading) return <div className="text-center py-10 text-text-secondary text-sm">加载中...</div>;
-  if (!item) return <div className="text-center py-10 text-text-secondary text-sm">物品不存在</div>;
+  if (loading) return <div className="text-center py-10 text-sm" style={{ color: 'var(--text-secondary)' }}>加载中...</div>;
+  if (!item) return <div className="text-center py-10 text-sm" style={{ color: 'var(--text-secondary)' }}>物品不存在</div>;
+
+  const glassCard = {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'var(--glass-blur)',
+    WebkitBackdropFilter: 'var(--glass-blur)',
+    border: '1px solid var(--glass-border)',
+    borderRadius: '20px',
+  };
+
+  const editInputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    borderRadius: '14px',
+    fontSize: '14px',
+    color: 'var(--text-primary)',
+    background: 'var(--glass-input-bg, rgba(255,255,255,0.06))',
+    backdropFilter: 'var(--glass-blur)',
+    WebkitBackdropFilter: 'var(--glass-blur)',
+    border: '1px solid var(--glass-border)',
+    outline: 'none',
+    transition: 'all 0.2s ease',
+  };
 
   return (
     <div>
@@ -123,19 +145,39 @@ export default function ItemDetailScreen() {
         actions={
           editing ? (
             <div className="flex items-center gap-2">
-              <button onClick={() => setEditing(false)} className="p-2 rounded-xl hover:bg-gray-light text-text-secondary">
+              <button
+                onClick={() => setEditing(false)}
+                className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 <X size={18} />
               </button>
-              <button onClick={handleSave} className="px-3 py-1.5 rounded-xl text-sm font-medium bg-primary text-white hover:bg-primary-dark transition-colors">
-                <Save size={16} className="inline mr-1" /> 保存
+              <button
+                onClick={handleSave}
+                className="px-3 py-1.5 rounded-xl text-sm font-medium text-white transition-all duration-200
+                           hover:scale-105 active:scale-95 flex items-center gap-1"
+                style={{
+                  background: 'var(--gradient-accent)',
+                  boxShadow: '0 4px 16px var(--shadow-accent, rgba(124,58,237,0.3))',
+                }}
+              >
+                <Save size={16} /> 保存
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-1">
-              <button onClick={() => setEditing(true)} className="p-2 rounded-xl hover:bg-gray-light text-text-secondary">
+              <button
+                onClick={() => setEditing(true)}
+                className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 <Edit3 size={18} />
               </button>
-              <button onClick={() => setShowDelete(true)} className="p-2 rounded-xl hover:bg-error/10 text-error">
+              <button
+                onClick={() => setShowDelete(true)}
+                className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
+                style={{ color: 'var(--color-error)' }}
+              >
                 <Trash2 size={18} />
               </button>
             </div>
@@ -149,15 +191,23 @@ export default function ItemDetailScreen() {
           <MultiImageViewer imagePaths={item.imagePaths} itemName={item.name} />
         ) : (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text">
+            <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               图片 ({imagePaths.length}/5)
             </label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-3 flex-wrap">
               {imagePaths.map((path, i) => (
                 <EditableImage key={path} path={path} name={name} onRemove={() => handleRemoveImage(i)} />
               ))}
               {imagePaths.length < 5 && (
-                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 text-text-secondary hover:text-primary transition-colors">
+                <label
+                  className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer
+                             transition-all duration-200 hover:scale-105"
+                  style={{
+                    border: '2px dashed var(--glass-border)',
+                    color: 'var(--text-secondary)',
+                    background: 'var(--glass-input-bg, rgba(255,255,255,0.03))',
+                  }}
+                >
                   <span className="text-lg">+</span>
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddImage} />
                 </label>
@@ -166,49 +216,89 @@ export default function ItemDetailScreen() {
           </div>
         )}
 
-        {/* Info fields */}
+        {/* Info fields / View mode */}
         {editing ? (
-          <div className="space-y-4">
-            <EditField label="物品名称" required icon={<Hash size={16} />} value={name} onChange={setName} placeholder="物品名称" error={errors.name} />
-            <EditField label="存放位置" icon={<MapPin size={16} />} value={location} onChange={setLocation} placeholder="存放位置" />
-            <EditField label="购买日期" icon={<Calendar size={16} />} value={purchaseDate} onChange={setPurchaseDate} type="date" />
+          <div className="space-y-4 p-5" style={glassCard}>
+            <EditField label="物品名称" required icon={<Hash size={16} />} value={name} onChange={setName} placeholder="物品名称" error={errors.name} inputStyle={editInputStyle} />
+            <EditField label="存放位置" icon={<MapPin size={16} />} value={location} onChange={setLocation} placeholder="存放位置" inputStyle={editInputStyle} />
+            <EditField label="购买日期" icon={<Calendar size={16} />} value={purchaseDate} onChange={setPurchaseDate} type="date" inputStyle={editInputStyle} />
             <div className="grid grid-cols-2 gap-3">
-              <EditField label="购买价格" icon={<DollarSign size={16} />} value={purchasePrice} onChange={setPurchasePrice} type="number" />
-              <EditField label="使用天数" icon={<Hash size={16} />} value={usageDays} onChange={setUsageDays} type="number" placeholder={autoUsageDays != null ? `自动: ${autoUsageDays}` : ''} />
+              <EditField label="购买价格" icon={<DollarSign size={16} />} value={purchasePrice} onChange={setPurchasePrice} type="number" inputStyle={editInputStyle} />
+              <EditField label="使用天数" icon={<Hash size={16} />} value={usageDays} onChange={setUsageDays} type="number" placeholder={autoUsageDays != null ? `自动: ${autoUsageDays}` : ''} inputStyle={editInputStyle} />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-sm font-medium text-text"><FileText size={14} className="text-text-secondary" /> 备注</label>
-              <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} className="w-full px-3 py-2.5 rounded-xl border border-border/60 bg-surface text-sm placeholder:text-text-tertiary focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 resize-none" placeholder="备注..." />
+              <label className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <FileText size={14} style={{ color: 'var(--text-secondary)' }} /> 备注
+              </label>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                rows={3}
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none transition-all duration-200"
+                style={{
+                  color: 'var(--text-primary)',
+                  background: 'var(--glass-input-bg, rgba(255,255,255,0.06))',
+                  backdropFilter: 'var(--glass-blur)',
+                  WebkitBackdropFilter: 'var(--glass-blur)',
+                  border: '1px solid var(--glass-border)',
+                  outline: 'none',
+                }}
+                placeholder="备注..."
+              />
             </div>
             <TagInput tags={tags} onChange={setTags} />
           </div>
         ) : (
-          <div className="bg-surface rounded-2xl shadow-sm divide-y divide-border/30">
-            <InfoRow icon={<MapPin size={16} />} label="存放位置" value={item.location || '—'} />
-            <InfoRow icon={<Calendar size={16} />} label="购买日期" value={item.purchaseDate ? `${formatDate(item.purchaseDate)} (${formatRelativeTime(item.purchaseDate)})` : '—'} />
-            <InfoRow icon={<DollarSign size={16} />} label="购买价格" value={formatPrice(item.purchasePrice) || '—'} />
-            <InfoRow icon={<Hash size={16} />} label="使用天数" value={item.usageDays != null ? `${item.usageDays} 天` : (autoUsageDays != null ? `${autoUsageDays} 天` : '—')} />
-            {dailyCost !== null && <InfoRow icon={<DollarSign size={16} />} label="日均成本" value={formatDailyCost(dailyCost)} />}
-            <InfoRow icon={<FileText size={16} />} label="备注" value={item.note || '—'} />
+          <div style={glassCard}>
+            <InfoRow icon={<MapPin size={16} />} label="存放位置" value={item.location || '\u2014'} />
+            <div style={{ height: '1px', background: 'var(--glass-border)', margin: '0 16px' }} />
+            <InfoRow icon={<Calendar size={16} />} label="购买日期" value={item.purchaseDate ? `${formatDate(item.purchaseDate)} (${formatRelativeTime(item.purchaseDate)})` : '\u2014'} />
+            <div style={{ height: '1px', background: 'var(--glass-border)', margin: '0 16px' }} />
+            <InfoRow icon={<DollarSign size={16} />} label="购买价格" value={formatPrice(item.purchasePrice) || '\u2014'} />
+            <div style={{ height: '1px', background: 'var(--glass-border)', margin: '0 16px' }} />
+            <InfoRow icon={<Hash size={16} />} label="使用天数" value={item.usageDays != null ? `${item.usageDays} 天` : (autoUsageDays != null ? `${autoUsageDays} 天` : '\u2014')} />
+            {dailyCost !== null && (
+              <>
+                <div style={{ height: '1px', background: 'var(--glass-border)', margin: '0 16px' }} />
+                <InfoRow icon={<DollarSign size={16} />} label="日均成本" value={formatDailyCost(dailyCost)} />
+              </>
+            )}
+            <div style={{ height: '1px', background: 'var(--glass-border)', margin: '0 16px' }} />
+            <InfoRow icon={<FileText size={16} />} label="备注" value={item.note || '\u2014'} />
             {item.tags.length > 0 && (
-              <div className="px-4 py-3 flex items-start gap-3">
-                <span className="text-text-secondary mt-0.5"><Hash size={16} /></span>
-                <div>
-                  <p className="text-xs text-text-secondary mb-1">标签</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {item.tags.map(tag => (
-                      <span key={tag} className="text-xs px-2 py-0.5 rounded-lg bg-primary/10 text-primary font-medium">{tag}</span>
-                    ))}
+              <>
+                <div style={{ height: '1px', background: 'var(--glass-border)', margin: '0 16px' }} />
+                <div className="px-4 py-3 flex items-start gap-3">
+                  <span style={{ color: 'var(--text-secondary)', marginTop: '2px' }}><Hash size={16} /></span>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>标签</p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {item.tags.map(tag => (
+                        <span
+                          key={tag}
+                          className="text-xs px-2.5 py-0.5 rounded-lg font-medium"
+                          style={{
+                            background: 'var(--glass-bg)',
+                            backdropFilter: 'var(--glass-blur)',
+                            WebkitBackdropFilter: 'var(--glass-blur)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--color-accent)',
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         )}
 
         {/* Metadata */}
         {!editing && (
-          <div className="text-[11px] text-text-tertiary text-center py-2">
+          <div className="text-[11px] text-center py-2" style={{ color: 'var(--text-tertiary)' }}>
             创建于 {formatDate(item.createdAt)} · 更新于 {formatRelativeTime(item.updatedAt)}
           </div>
         )}
@@ -222,7 +312,22 @@ export default function ItemDetailScreen() {
       />
 
       {state.snackbar && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${state.snackbar.type === 'error' ? 'bg-error text-white' : 'bg-primary text-white'}`}>
+        <div
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-2xl
+                     text-sm font-medium shadow-xl backdrop-blur-xl"
+          style={{
+            background: state.snackbar.type === 'error'
+              ? 'var(--color-error)'
+              : 'var(--glass-bg)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid var(--glass-border)',
+            color: state.snackbar.type === 'error' ? 'white' : 'var(--text-primary)',
+            boxShadow: state.snackbar.type !== 'error'
+              ? '0 8px 32px var(--shadow-color, rgba(0,0,0,0.12))'
+              : undefined,
+          }}
+        >
           {state.snackbar.message}
         </div>
       )}
@@ -233,31 +338,34 @@ export default function ItemDetailScreen() {
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="px-4 py-3 flex items-start gap-3">
-      <span className="text-text-secondary mt-0.5">{icon}</span>
+      <span style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{icon}</span>
       <div>
-        <p className="text-xs text-text-secondary">{label}</p>
-        <p className="text-sm text-text mt-0.5">{value}</p>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-primary)' }}>{value}</p>
       </div>
     </div>
   );
 }
 
-function EditField({ label, required, icon, value, onChange, placeholder, type = 'text', error }: {
-  label: string; required?: boolean; icon: React.ReactNode; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; error?: string;
+function EditField({ label, required, icon, value, onChange, placeholder, type = 'text', error, inputStyle }: {
+  label: string; required?: boolean; icon: React.ReactNode; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; error?: string; inputStyle?: React.CSSProperties;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center gap-1.5 text-sm font-medium text-text">
-        {icon} {label} {required && <span className="text-error">*</span>}
+      <label className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+        {icon} {label} {required && <span style={{ color: 'var(--color-error)' }}>*</span>}
       </label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-3 py-2.5 rounded-xl border text-sm bg-surface placeholder:text-text-tertiary focus:outline-none focus:ring-2 ${error ? 'border-error' : 'border-border/60 focus:border-primary/40 focus:ring-primary/10'}`}
+        style={{
+          ...inputStyle,
+          borderColor: error ? 'var(--color-error)' : undefined,
+        }}
       />
-      {error && <p className="text-xs text-error">{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--color-error)' }}>{error}</p>}
     </div>
   );
 }
@@ -271,9 +379,36 @@ function EditableImage({ path, name, onRemove }: { path: string; name: string; o
   }, [path]);
   return (
     <div className="relative group">
-      {url ? <img src={url} alt="" className="w-20 h-20 rounded-xl object-cover" /> :
-        <div className="w-20 h-20 rounded-xl flex items-center justify-center text-xl font-semibold" style={{ backgroundColor: '#E8DEF8', color: '#6650a4' }}>{name.charAt(0).toUpperCase()}</div>}
-      <button onClick={onRemove} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">x</button>
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          className="w-20 h-20 rounded-2xl object-cover"
+          style={{ border: '1px solid var(--glass-border)' }}
+        />
+      ) : (
+        <div
+          className="w-20 h-20 rounded-2xl flex items-center justify-center text-xl font-semibold"
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--color-accent)',
+          }}
+        >
+          {name.charAt(0).toUpperCase()}
+        </div>
+      )}
+      <button
+        onClick={onRemove}
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white
+                   flex items-center justify-center opacity-0 group-hover:opacity-100
+                   transition-all duration-200 text-xs"
+        style={{ background: 'var(--color-error)' }}
+      >
+        x
+      </button>
     </div>
   );
 }
