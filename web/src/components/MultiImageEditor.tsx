@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, X, Image as ImageIcon } from 'lucide-react';
 import { getImageUrl, isWebImage, saveImage } from '../services/imageStorage';
 import { MAX_IMAGES_PER_ITEM } from '../utils/constants';
@@ -17,7 +17,7 @@ export default function MultiImageEditor({ imagePaths, itemId, itemName, onChang
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Load image URLs
-  useState(() => {
+  useEffect(() => {
     imagePaths.forEach(async (path) => {
       if (isWebImage(path)) {
         try {
@@ -28,7 +28,7 @@ export default function MultiImageEditor({ imagePaths, itemId, itemName, onChang
         }
       }
     });
-  });
+  }, [imagePaths]);
 
   const handleAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

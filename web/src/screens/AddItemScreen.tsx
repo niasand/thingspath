@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { itemRepository } from '../db/repository';
@@ -225,13 +225,13 @@ function ImagePreview({ path, name, onRemove }: { path: string; name: string; on
   const [url, setUrl] = useState<string | null>(null);
   const [err, setErr] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     if (path.startsWith('img:')) {
       import('../services/imageStorage').then(({ getImageUrl }) =>
         getImageUrl(path).then(u => { if (u) setUrl(u); }).catch(() => setErr(true)),
       );
     }
-  });
+  }, [path]);
 
   return (
     <div className="relative group">

@@ -15,7 +15,7 @@ import type { Item } from '../types/item';
 export default function ItemDetailScreen() {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
 
   const [item, setItem] = useState<Item | null>(null);
   const [editing, setEditing] = useState(false);
@@ -221,9 +221,9 @@ export default function ItemDetailScreen() {
         onCancel={() => setShowDelete(false)}
       />
 
-      {useApp().state.snackbar && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${useApp().state.snackbar?.type === 'error' ? 'bg-error text-white' : 'bg-primary text-white'}`}>
-          {useApp().state.snackbar?.message}
+      {state.snackbar && (
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${state.snackbar.type === 'error' ? 'bg-error text-white' : 'bg-primary text-white'}`}>
+          {state.snackbar.message}
         </div>
       )}
     </div>
@@ -264,11 +264,11 @@ function EditField({ label, required, icon, value, onChange, placeholder, type =
 
 function EditableImage({ path, name, onRemove }: { path: string; name: string; onRemove: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
-  useState(() => {
+  useEffect(() => {
     if (path.startsWith('img:')) {
       getImageUrl(path).then(u => { if (u) setUrl(u); });
     }
-  });
+  }, [path]);
   return (
     <div className="relative group">
       {url ? <img src={url} alt="" className="w-20 h-20 rounded-xl object-cover" /> :
