@@ -19,7 +19,7 @@ export default function FloatingActionButton({ onAddManual, onAddAI }: Props) {
   }, []);
 
   return (
-    <div className="fixed bottom-24 md:bottom-8 right-6 z-30" ref={ref}>
+    <div className="fixed bottom-24 md:bottom-8 right-6 md:right-[calc(50%-336px+1rem)] z-30" ref={ref}>
       {/* Expanded menu */}
       {expanded && (
         <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-in items-end">
