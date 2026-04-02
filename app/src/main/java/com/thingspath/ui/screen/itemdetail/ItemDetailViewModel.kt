@@ -132,7 +132,7 @@ class ItemDetailViewModel @Inject constructor(
     }
 
     fun removeImage(index: Int) {
-        _state.update { it.copy(imagePaths = it.imagePaths.toMutableList().also { list -> list.removeAt(index) }) }
+        _state.update { it.copy(imagePaths = it.imagePaths.filterIndexed { idx, _ -> idx != index }) }
     }
 
     fun toggleEditMode() {
