@@ -56,7 +56,7 @@ class R2ImageRepository @Inject constructor() {
                     Log.d(TAG, "Uploaded to R2: $key")
                     "$publicUrl/$key"
                 } else {
-                    Log.e(TAG, "R2 upload failed: ${response.code()} - ${response.body()?.string()}")
+                    Log.e(TAG, "R2 upload failed: ${response.code} - ${response.body()?.string()}")
                     null
                 }
             }
@@ -85,11 +85,11 @@ class R2ImageRepository @Inject constructor() {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                val success = response.isSuccessful || response.code() == 404
+                val success = response.isSuccessful || response.code == 404
                 if (success) {
                     Log.d(TAG, "Deleted from R2: $key")
                 } else {
-                    Log.e(TAG, "R2 delete failed: ${response.code()}")
+                    Log.e(TAG, "R2 delete failed: ${response.code}")
                 }
                 success
             }
