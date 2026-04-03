@@ -13,12 +13,15 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+import android.net.Uri
+
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getItemByIdUseCase: GetItemByIdUseCase,
     private val updateItemUseCase: UpdateItemUseCase,
-    private val deleteItemUseCase: DeleteItemUseCase
+    private val deleteItemUseCase: DeleteItemUseCase,
+    private val uploadImageUseCase: UploadImageUseCase
 ) : ViewModel() {
 
     private val itemId: Long = savedStateHandle.get<Long>("itemId") ?: 0L
@@ -133,6 +136,17 @@ class ItemDetailViewModel @Inject constructor(
 
     fun removeImage(index: Int) {
         _state.update { it.copy(imagePaths = it.imagePaths.filterIndexed { idx, _ -> idx != index }) }
+    }
+
+    fun uploadImage(uri: Uri) {
+        viewModelScope.launch {
+            _state.update { it.copy(isImageUploading = true) }
+            val path = uploadImageUseCase(uri)
+            if (path != null) {
+                _state.update { it.copy(imagePaths = it.imagePaths + path) }
+            }
+            _state.update { it.copy(isImageUploading = false) }
+        }
     }
 
     fun toggleEditMode() {

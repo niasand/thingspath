@@ -23,7 +23,6 @@ import com.thingspath.ui.component.MultiImageEditor
 import android.app.DatePickerDialog
 import android.widget.DatePicker
 import java.util.Calendar
-import com.thingspath.util.ItemImageStorage
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 import java.io.File
@@ -46,10 +45,7 @@ fun AddItemScreen(
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            val storedPath = ItemImageStorage.saveToAppStorage(context, it)
-            if (storedPath != null) viewModel.addImage(storedPath)
-        }
+        uri?.let { viewModel.uploadImage(it) }
     }
 
     // Camera capture launcher
@@ -58,13 +54,7 @@ fun AddItemScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            photoUri?.let { uri ->
-                // Save captured photo to album and get the album path
-                val albumPath = ItemImageStorage.saveToAlbum(context, uri)
-                if (albumPath != null) {
-                    viewModel.addImage(albumPath)
-                }
-            }
+            photoUri?.let { uri -> viewModel.uploadImage(uri) }
         }
     }
 

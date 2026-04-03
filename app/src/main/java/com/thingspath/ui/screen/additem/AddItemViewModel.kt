@@ -1,19 +1,21 @@
 package com.thingspath.ui.screen.additem
 
+import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.Item
 import com.thingspath.domain.usecase.AddItemUseCase
+import com.thingspath.domain.usecase.UploadImageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-import androidx.lifecycle.SavedStateHandle
-
 @HiltViewModel
 class AddItemViewModel @Inject constructor(
     private val addItemUseCase: AddItemUseCase,
+    private val uploadImageUseCase: UploadImageUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -120,6 +122,17 @@ class AddItemViewModel @Inject constructor(
 
     fun removeImage(index: Int) {
         _state.update { it.copy(imagePaths = it.imagePaths.filterIndexed { idx, _ -> idx != index }) }
+    }
+
+    fun uploadImage(uri: Uri) {
+        viewModelScope.launch {
+            _state.update { it.copy(isImageUploading = true) }
+            val path = uploadImageUseCase(uri)
+            if (path != null) {
+                _state.update { it.copy(imagePaths = it.imagePaths + path) }
+            }
+            _state.update { it.copy(isImageUploading = false) }
+        }
     }
 
     fun validateForm(): Boolean {
