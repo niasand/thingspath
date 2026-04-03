@@ -57,9 +57,9 @@ fun ItemDetailScreen(
 
     // Gallery picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.uploadImage(it) }
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) { viewModel.uploadImages(uris) }
     }
 
     // Camera capture launcher
