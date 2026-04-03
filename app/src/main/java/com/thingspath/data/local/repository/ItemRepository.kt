@@ -6,8 +6,12 @@ import com.thingspath.data.model.Item
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import android.util.Log
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -74,14 +78,17 @@ class ItemRepository @Inject constructor(
         backupData()
     }
 
-    private suspend fun backupData() {
-        try {
-            val entities = itemDao.getAllItemsSync()
-            val items = entities.map { it.toDomainModel() }
-            val json = gson.toJson(items)
-            fileRepository.saveBackup(json)
-        } catch (e: Exception) {
-            Log.e("ItemRepository", "Backup failed", e)
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun backupData() {
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val entities = itemDao.getAllItemsSync()
+                val items = entities.map { it.toDomainModel() }
+                val json = gson.toJson(items)
+                fileRepository.saveBackup(json)
+            } catch (e: Exception) {
+                Log.e("ItemRepository", "Backup failed", e)
+            }
         }
     }
 

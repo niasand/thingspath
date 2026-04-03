@@ -37,12 +37,12 @@ import android.app.DatePickerDialog
 import android.widget.DatePicker
 import java.text.SimpleDateFormat
 import java.util.*
-import com.thingspath.util.ItemImageStorage
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 import java.io.File
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.Intent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,14 +56,33 @@ fun ItemDetailScreen(
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior() // Use pinned scroll behavior
 
-    // Gallery picker launcher
+    // Gallery picker launcher (multiple selection)
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val storedPath = ItemImageStorage.saveToAppStorage(context, it)
-            if (storedPath != null) viewModel.addImage(storedPath)
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val uris = mutableListOf<Uri>()
+            data?.clipData?.let { clipData ->
+                for (i in 0 until clipData.itemCount) {
+                    uris.add(clipData.getItemAt(i).uri)
+                }
+            } ?: data?.data?.let { uri ->
+                uris.add(uri)
+            }
+            if (uris.isNotEmpty()) {
+                viewModel.uploadImages(uris)
+            }
         }
+    }
+    
+    val onAddFromGallery = {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Images"))
     }
 
     // Camera capture launcher
@@ -72,12 +91,7 @@ fun ItemDetailScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            photoUri?.let { uri ->
-                val albumPath = ItemImageStorage.saveToAlbum(context, uri)
-                if (albumPath != null) {
-                    viewModel.addImage(albumPath)
-                }
-            }
+            photoUri?.let { uri -> viewModel.uploadImage(uri) }
         }
     }
 
@@ -92,8 +106,6 @@ fun ItemDetailScreen(
         }
     }
 
-    // Image source handlers
-    val onAddFromGallery = { imagePickerLauncher.launch("image/*") }
     val onCaptureFromCamera = {
         when {
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {

@@ -23,12 +23,12 @@ import com.thingspath.ui.component.MultiImageEditor
 import android.app.DatePickerDialog
 import android.widget.DatePicker
 import java.util.Calendar
-import com.thingspath.util.ItemImageStorage
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 import java.io.File
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,14 +42,33 @@ fun AddItemScreen(
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
-    // Gallery picker launcher
+    // Gallery picker launcher (multiple selection)
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val storedPath = ItemImageStorage.saveToAppStorage(context, it)
-            if (storedPath != null) viewModel.addImage(storedPath)
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val uris = mutableListOf<Uri>()
+            data?.clipData?.let { clipData ->
+                for (i in 0 until clipData.itemCount) {
+                    uris.add(clipData.getItemAt(i).uri)
+                }
+            } ?: data?.data?.let { uri ->
+                uris.add(uri)
+            }
+            if (uris.isNotEmpty()) {
+                viewModel.uploadImages(uris)
+            }
         }
+    }
+    
+    val onAddFromGallery = {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Images"))
     }
 
     // Camera capture launcher
@@ -58,13 +77,7 @@ fun AddItemScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            photoUri?.let { uri ->
-                // Save captured photo to album and get the album path
-                val albumPath = ItemImageStorage.saveToAlbum(context, uri)
-                if (albumPath != null) {
-                    viewModel.addImage(albumPath)
-                }
-            }
+            photoUri?.let { uri -> viewModel.uploadImage(uri) }
         }
     }
 
@@ -141,7 +154,7 @@ fun AddItemScreen(
                 onTagInputChange = viewModel::onTagInputChange,
                 onAddTag = viewModel::addTag,
                 onRemoveTag = viewModel::removeTag,
-                onAddFromGallery = { imagePickerLauncher.launch("image/*") },
+                onAddFromGallery = onAddFromGallery,
                 onCaptureFromCamera = {
                     when {
                         ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {

@@ -17,5 +17,6 @@ data class ItemDetailState(
     val imagePaths: List<String> = emptyList(),
     val showDeleteDialog: Boolean = false,
     val isImageFullScreen: Boolean = false,
-    val fullScreenImageIndex: Int = 0
+    val fullScreenImageIndex: Int = 0,
+    val isImageUploading: Boolean = false
 )
