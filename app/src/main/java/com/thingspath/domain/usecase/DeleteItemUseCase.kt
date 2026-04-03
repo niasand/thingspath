@@ -37,8 +37,13 @@ class DeleteItemUseCase @Inject constructor(
      * Delete all images associated with this item from R2 storage
      */
     private suspend fun deleteImagesFromR2(item: Item) {
+        Log.d("DeleteItemUseCase", "Deleting images for item ${item.id}, imagePaths: ${item.imagePaths}")
         val imagePaths = item.imagePaths.filter { it.isNotBlank() }
-        if (imagePaths.isEmpty()) return
+        Log.d("DeleteItemUseCase", "Filtered imagePaths: $imagePaths, isEmpty: ${imagePaths.isEmpty()}")
+        if (imagePaths.isEmpty()) {
+            Log.d("DeleteItemUseCase", "No images to delete for item ${item.id}")
+            return
+        }
 
         imagePaths.forEach { path ->
             if (r2ImageRepository.isR2Url(path)) {
