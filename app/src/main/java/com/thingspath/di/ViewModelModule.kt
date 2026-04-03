@@ -41,8 +41,11 @@ object ViewModelModule {
 
     @Provides
     @Singleton
-    fun provideDeleteItemUseCase(repository: ItemRepository): DeleteItemUseCase {
-        return DeleteItemUseCase(repository)
+    fun provideDeleteItemUseCase(
+        repository: ItemRepository,
+        r2ImageRepository: R2ImageRepository
+    ): DeleteItemUseCase {
+        return DeleteItemUseCase(repository, r2ImageRepository)
     }
 
     @Provides

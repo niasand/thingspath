@@ -17,20 +17,22 @@ class ItemDetailViewModelTest {
     private val getItemByIdUseCase: GetItemByIdUseCase = mockk(relaxed = true)
     private val updateItemUseCase: UpdateItemUseCase = mockk(relaxed = true)
     private val deleteItemUseCase: DeleteItemUseCase = mockk(relaxed = true)
+    private val uploadImageUseCase: UploadImageUseCase = mockk(relaxed = true)
 
     @Test
     fun `viewModel initialization with valid itemId should not crash`() {
         // Simulate navigation argument passing a Long
         val savedStateHandle = SavedStateHandle(mapOf("itemId" to 123L))
-        
+
         // This should not throw ClassCastException
         val viewModel = ItemDetailViewModel(
             savedStateHandle = savedStateHandle,
             getItemByIdUseCase = getItemByIdUseCase,
             updateItemUseCase = updateItemUseCase,
-            deleteItemUseCase = deleteItemUseCase
+            deleteItemUseCase = deleteItemUseCase,
+            uploadImageUseCase = uploadImageUseCase
         )
-        
+
         // If we reach here, the test passes
     }
 }
