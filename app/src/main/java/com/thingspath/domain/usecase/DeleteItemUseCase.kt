@@ -1,6 +1,7 @@
 package com.thingspath.domain.usecase
 
 import android.util.Log
+import com.thingspath.BuildConfig
 import com.thingspath.data.local.repository.ItemRepository
 import com.thingspath.data.model.Item
 import com.thingspath.data.remote.repository.R2ImageRepository
@@ -11,6 +12,7 @@ class DeleteItemUseCase @Inject constructor(
     private val r2ImageRepository: R2ImageRepository
 ) {
     suspend operator fun invoke(item: Item) {
+        Log.d("DeleteItemUseCase", "invoke(item) called for item ${item.id}, imagePaths: ${item.imagePaths}")
         deleteImagesFromR2(item)
         repository.deleteItem(item)
     }
@@ -39,11 +41,13 @@ class DeleteItemUseCase @Inject constructor(
     private suspend fun deleteImagesFromR2(item: Item) {
         Log.d("DeleteItemUseCase", "Deleting images for item ${item.id}, imagePaths: ${item.imagePaths}")
         val imagePaths = item.imagePaths.filter { it.isNotBlank() }
-        Log.d("DeleteItemUseCase", "Filtered imagePaths: $imagePaths, isEmpty: ${imagePaths.isEmpty()}")
+        Log.d("DeleteItemUseCase", "Filtered imagePaths: $imagePaths, count: ${imagePaths.size}")
         if (imagePaths.isEmpty()) {
             Log.d("DeleteItemUseCase", "No images to delete for item ${item.id}")
             return
         }
+
+        Log.d("DeleteItemUseCase", "R2_PUBLIC_URL: ${BuildConfig.R2_PUBLIC_URL}")
 
         imagePaths.forEach { path ->
             if (r2ImageRepository.isR2Url(path)) {
