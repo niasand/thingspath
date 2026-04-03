@@ -106,8 +106,6 @@ fun ItemDetailScreen(
         }
     }
 
-    // Image source handlers
-    val onAddFromGallery = onAddFromGallery
     val onCaptureFromCamera = {
         when {
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
