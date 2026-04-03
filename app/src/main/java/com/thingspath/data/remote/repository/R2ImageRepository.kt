@@ -4,9 +4,10 @@ import android.util.Log
 import com.thingspath.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -45,7 +46,7 @@ class R2ImageRepository @Inject constructor() {
 
             val request = Request.Builder()
                 .url(url)
-                .put(RequestBody.create(okhttp3.MediaType.parse(contentType), content))
+                .put(content.toRequestBody(contentType.toMediaType()))
                 .apply {
                     headers.forEach { (name, value) -> addHeader(name, value) }
                 }
@@ -56,7 +57,7 @@ class R2ImageRepository @Inject constructor() {
                     Log.d(TAG, "Uploaded to R2: $key")
                     "$publicUrl/$key"
                 } else {
-                    Log.e(TAG, "R2 upload failed: ${response.code} - ${response.body()?.string()}")
+                    Log.e(TAG, "R2 upload failed: ${response.code} - ${response.body?.string()}")
                     null
                 }
             }
