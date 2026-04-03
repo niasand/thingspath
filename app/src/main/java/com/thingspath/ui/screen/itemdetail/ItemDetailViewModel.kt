@@ -146,6 +146,7 @@ class ItemDetailViewModel @Inject constructor(
                 _state.update { it.copy(imagePaths = it.imagePaths + path) }
             }
             _state.update { it.copy(isImageUploading = false) }
+        }
     }
 
     fun uploadImages(uris: List<Uri>) {
