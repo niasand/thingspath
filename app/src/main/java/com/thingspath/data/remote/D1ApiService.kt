@@ -15,7 +15,7 @@ import javax.inject.Singleton
 
 data class D1QueryRequest(
     val sql: String,
-    val params: List<Any>? = null
+    val params: List<Any?>? = null
 )
 
 data class D1Result<T>(
@@ -48,7 +48,7 @@ class D1ApiService @Inject constructor() {
     private val baseUrl = "https://api.cloudflare.com/client/v4/accounts/${BuildConfig.D1_ACCOUNT_ID}/d1/database/${BuildConfig.D1_DATABASE_ID}/query"
     private val token = BuildConfig.D1_API_TOKEN
 
-    suspend fun executeQuery(sql: String, params: List<Any>? = null): String {
+    suspend fun executeQuery(sql: String, params: List<Any?>? = null): String {
         return withContext(Dispatchers.IO) {
             val body = D1QueryRequest(sql, params)
             val json = gson.toJson(body)
@@ -107,7 +107,7 @@ class D1ApiService @Inject constructor() {
         val responseBody = executeQuery(
             """INSERT INTO items (name, image_paths, location, purchase_date, purchase_price, usage_days, note, tags, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            listOf(name as Any, imagePaths as Any, location as Any, purchaseDate as Any, purchasePrice as Any, usageDays as Any, note as Any, tags as Any, createdAt as Any, updatedAt as Any)
+            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
         )
         val result = parseD1Result(responseBody)
         return result?.meta?.last_row_id ?: 0
@@ -128,7 +128,7 @@ class D1ApiService @Inject constructor() {
         executeQuery(
             """UPDATE items SET name = ?, image_paths = ?, location = ?, purchase_date = ?,
                purchase_price = ?, usage_days = ?, note = ?, tags = ?, updated_at = ? WHERE id = ?""",
-            listOf(name as Any, imagePaths as Any, location as Any, purchaseDate as Any, purchasePrice as Any, usageDays as Any, note as Any, tags as Any, updatedAt as Any, id as Any)
+            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, updatedAt, id)
         )
     }
 
@@ -139,7 +139,7 @@ class D1ApiService @Inject constructor() {
     suspend fun deleteItemsByIds(ids: List<Long>) {
         if (ids.isEmpty()) return
         val placeholders = ids.joinToString(",") { "?" }
-        executeQuery("DELETE FROM items WHERE id IN ($placeholders)", ids.map { it as Any })
+        executeQuery("DELETE FROM items WHERE id IN ($placeholders)", ids)
     }
 
     suspend fun createTableIfNotExists() {
