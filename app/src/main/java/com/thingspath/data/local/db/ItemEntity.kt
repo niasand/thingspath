@@ -1,5 +1,6 @@
 package com.thingspath.data.local.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.Gson
@@ -11,16 +12,16 @@ data class ItemEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val imagePaths: String = "[]",
-    val imagePath: String? = null,
+    @ColumnInfo(name = "image_paths") val imagePaths: String = "[]",
+    @ColumnInfo(name = "image_path") val imagePath: String? = null,
     val location: String? = null,
-    val purchaseDate: Long? = null,
-    val purchasePrice: Double = 0.0,
-    val usageDays: Int? = null,
+    @ColumnInfo(name = "purchase_date") val purchaseDate: Long? = null,
+    @ColumnInfo(name = "purchase_price") val purchasePrice: Double = 0.0,
+    @ColumnInfo(name = "usage_days") val usageDays: Int? = null,
     val note: String? = null,
     val tags: String = "[]",
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
 )
 
 private val gson = Gson()
