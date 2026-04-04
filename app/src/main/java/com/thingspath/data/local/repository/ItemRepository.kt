@@ -2,6 +2,9 @@ package com.thingspath.data.local.repository
 
 import android.app.Application
 import android.util.Log
+import coil.ImageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.thingspath.data.model.Item
@@ -21,7 +24,8 @@ import javax.inject.Singleton
 @Singleton
 class ItemRepository @Inject constructor(
     private val d1ApiService: D1ApiService,
-    private val application: Application
+    private val application: Application,
+    private val imageLoader: ImageLoader
 ) {
     private val gson = Gson()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -67,6 +71,8 @@ class ItemRepository @Inject constructor(
         }
     }
 
+    suspend fun refreshFromRemote() = refreshCache()
+
     private suspend fun refreshCache() {
         try {
             val rows = d1ApiService.getAllItems()
@@ -74,18 +80,55 @@ class ItemRepository @Inject constructor(
             _items.value = items
             saveToLocalCache(items)
             Log.d("ItemRepository", "Cache refreshed from D1, ${items.size} items")
+            // 预取所有 R2 图片到 Coil 磁盘缓存，下次打开详情页无需再从 R2 下载
+            prefetchImages(items)
         } catch (e: Exception) {
             Log.e("ItemRepository", "Failed to refresh from D1", e)
         }
     }
 
+    /**
+     * 将所有 R2 远程图片入队预缓存到 Coil 的磁盘缓存。
+     * 这是 fire-and-forget 操作，不阻塞 UI。
+     */
+    private fun prefetchImages(items: List<Item>) {
+        val urls = items
+            .flatMap { it.imagePaths }
+            .filter { it.startsWith("http://") || it.startsWith("https://") }
+            .distinct()
+
+        if (urls.isEmpty()) return
+
+        Log.d("ItemRepository", "Pre-fetching ${urls.size} remote images to disk cache")
+        urls.forEach { url ->
+            val request = ImageRequest.Builder(application)
+                .data(url)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .build()
+            imageLoader.enqueue(request)
+        }
+    }
+
     fun getAllItems(): Flow<List<Item>> = items
+
+    /**
+     * 同步读取内存缓存中的物品，用于详情页即时展示，无需 loading 状态。
+     * 缓存未命中时返回 null，调用方应回退到 suspend 版本的 getItemById()。
+     */
+    fun getCachedItemById(itemId: Long): Item? {
+        return _items.value.find { it.id == itemId }
+    }
 
     fun searchItems(searchQuery: String): Flow<List<Item>> {
         return items
     }
 
     suspend fun getItemById(itemId: Long): Item? {
+        // 优先从内存缓存读取，与列表页一致实现即时加载
+        _items.value.find { it.id == itemId }?.let { return it }
+
+        // 缓存未命中时回退到 D1 网络请求
         return withContext(Dispatchers.IO) {
             try {
                 val rows = d1ApiService.getItemById(itemId)
@@ -172,8 +215,8 @@ class ItemRepository @Inject constructor(
         return Item(
             id = (this["id"] as? Number)?.toLong() ?: 0,
             name = this["name"] as? String ?: "",
-            imagePath = null,
             imagePaths = parseJsonField(this["image_paths"]),
+            imagePath = parseJsonField(this["image_paths"]).firstOrNull(),
             location = this["location"] as? String,
             purchaseDate = (this["purchase_date"] as? Number)?.toLong(),
             purchasePrice = (this["purchase_price"] as? Number)?.toDouble() ?: 0.0,

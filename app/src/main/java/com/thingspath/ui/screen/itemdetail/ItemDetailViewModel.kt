@@ -34,37 +34,44 @@ class ItemDetailViewModel @Inject constructor(
 
     init {
         if (itemId > 0) {
-            loadItem()
+            // 先同步读内存缓存，即时填充 UI，无需 loading
+            val cached = getItemByIdUseCase.getCached(itemId)
+            if (cached != null) {
+                populateState(cached)
+            }
+            // 后台异步刷新，确保数据新鲜
+            loadItem(showLoading = cached == null)
         }
     }
 
-    private fun loadItem() {
+    private fun populateState(item: Item) {
+        val purchaseDateStr = formatPurchaseDate(item.purchaseDate)
+        val usageDaysStr = computeUsageDaysFromPurchaseDateString(purchaseDateStr)
+            ?: item.usageDays?.toString()
+            ?: ""
+        _state.update {
+            it.copy(
+                item = item,
+                isLoading = false,
+                name = item.name,
+                location = item.location ?: "",
+                purchaseDate = purchaseDateStr,
+                purchasePrice = item.purchasePrice.takeIf { p -> p > 0 }?.toString() ?: "",
+                usageDays = usageDaysStr,
+                note = item.note ?: "",
+                tags = item.tags,
+                imagePaths = item.imagePaths
+            )
+        }
+    }
+
+    private fun loadItem(showLoading: Boolean) {
         viewModelScope.launch {
             try {
-                _state.update { it.copy(isLoading = true) }
+                if (showLoading) _state.update { it.copy(isLoading = true) }
                 val item = getItemByIdUseCase(itemId)
-                item?.let { loadedItem ->
-                    val purchaseDateStr = formatPurchaseDate(loadedItem.purchaseDate)
-                    val usageDaysStr = computeUsageDaysFromPurchaseDateString(purchaseDateStr)
-                        ?: loadedItem.usageDays?.toString()
-                        ?: ""
-                    _state.update {
-                        it.copy(
-                            item = loadedItem,
-                            isLoading = false,
-                            name = loadedItem.name,
-                            location = loadedItem.location ?: "",
-                            purchaseDate = purchaseDateStr,
-                            purchasePrice = loadedItem.purchasePrice.takeIf { it > 0 }?.toString() ?: "",
-                            usageDays = usageDaysStr,
-                            note = loadedItem.note ?: "",
-                            tags = loadedItem.tags,
-                            imagePaths = loadedItem.imagePaths
-                        )
-                    }
-                } ?: run {
-                    _state.update { it.copy(isLoading = false) }
-                }
+                item?.let { populateState(it) }
+                if (showLoading) _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false) }
             }

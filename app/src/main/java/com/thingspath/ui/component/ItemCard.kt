@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import kotlin.random.Random
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.thingspath.data.model.Item
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -78,6 +81,11 @@ fun ItemCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Thumbnail image - rounded square with light background
+            // 缩略图：从 imagePaths 随机取一张，避免每次重组切换图片
+            val thumbnailUrl = remember(item.id, item.imagePaths.size) {
+                item.imagePaths.takeIf { it.isNotEmpty() }?.randomOrNull()
+            }
+
             Box(
                 modifier = Modifier
                     .size(64.dp)
@@ -85,9 +93,14 @@ fun ItemCard(
                     .background(GrayLight),
                 contentAlignment = Alignment.Center
             ) {
-                if (item.imagePath != null) {
+                if (thumbnailUrl != null) {
+                    // Coil 需区分 URL 和本地文件路径，否则本地路径被当作 URL 解析失败
+                    val imageModel: Any = when {
+                        thumbnailUrl.startsWith("http://") || thumbnailUrl.startsWith("https://") -> thumbnailUrl
+                        else -> File(thumbnailUrl)
+                    }
                     AsyncImage(
-                        model = item.imagePath,
+                        model = imageModel,
                         contentDescription = "Item image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

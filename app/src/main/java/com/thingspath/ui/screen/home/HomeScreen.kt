@@ -40,6 +40,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -299,7 +301,15 @@ fun HomeScreen(
             if (state.items.isEmpty()) {
                 EmptyState(modifier = Modifier.fillMaxSize())
             } else {
-                Box(modifier = Modifier.weight(1f)) {
+                val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
+                LaunchedEffect(state.isRefreshing) {
+                    swipeRefreshState.isRefreshing = state.isRefreshing
+                }
+                SwipeRefresh(
+                    state = swipeRefreshState,
+                    onRefresh = { viewModel.refreshData() },
+                    modifier = Modifier.weight(1f)
+                ) {
                     ListView(
                         items = state.items,
                         isSelectionMode = state.isSelectionMode,

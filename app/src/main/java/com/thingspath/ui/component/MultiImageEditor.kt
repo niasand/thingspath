@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import java.io.File
 
 private val THUMB_SIZE = 100.dp
 
@@ -122,8 +123,12 @@ private fun ImageThumbnailCell(
             .size(THUMB_SIZE)
             .clip(MaterialTheme.shapes.medium)
     ) {
+        val imageModel: Any = when {
+            imagePath.startsWith("http://") || imagePath.startsWith("https://") -> imagePath
+            else -> File(imagePath)
+        }
         AsyncImage(
-            model = imagePath,
+            model = imageModel,
             contentDescription = "Item image",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop

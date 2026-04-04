@@ -333,7 +333,7 @@ fun MultiImageViewer(
                 .clickable { onImageClick(0) }
         ) {
             AsyncImage(
-                model = imagePaths[0],
+                model = resolveImageModel(imagePaths[0]),
                 contentDescription = "Item image",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -350,7 +350,7 @@ fun MultiImageViewer(
             modifier = Modifier.fillMaxSize()
         ) { page ->
             AsyncImage(
-                model = imagePaths[page],
+                model = resolveImageModel(imagePaths[page]),
                 contentDescription = "Item image ${page + 1}",
                 modifier = Modifier
                     .fillMaxSize()
@@ -669,7 +669,7 @@ fun FullScreenImageDialog(
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 AsyncImage(
-                    model = imagePaths[page],
+                    model = resolveImageModel(imagePaths[page]),
                     contentDescription = "Full screen image ${page + 1}",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -716,6 +716,13 @@ fun FullScreenImageDialog(
             }
         }
     }
+}
+
+/**
+ * 将图片路径转为 Coil 可识别的 model：URL 直接使用，本地路径包装为 File
+ */
+private fun resolveImageModel(path: String): Any {
+    return if (path.startsWith("http://") || path.startsWith("https://")) path else File(path)
 }
 
 @Composable

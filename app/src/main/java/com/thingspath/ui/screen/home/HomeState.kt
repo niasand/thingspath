@@ -41,5 +41,7 @@ data class HomeState(
     // List Control
     val scrollToTopSignal: Long = 0L, // Increment to trigger scroll to top
     // Infinite Scroll
-    val infiniteScroll: Boolean = true
+    val infiniteScroll: Boolean = true,
+    // Pull to refresh
+    val isRefreshing: Boolean = false
 )

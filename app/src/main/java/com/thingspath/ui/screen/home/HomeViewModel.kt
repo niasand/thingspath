@@ -179,6 +179,20 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun refreshData() {
+        viewModelScope.launch {
+            _state.update { it.copy(isRefreshing = true) }
+            val startTime = System.currentTimeMillis()
+            try {
+                itemRepository.refreshFromRemote()
+            } catch (_: Exception) {}
+            // 保证 loading 至少展示 500ms，避免一闪而过
+            val elapsed = System.currentTimeMillis() - startTime
+            if (elapsed < 500L) delay(500L - elapsed)
+            _state.update { it.copy(isRefreshing = false) }
+        }
+    }
+
     fun toggleSelectionMode() {
         _state.update { it.copy(isSelectionMode = !it.isSelectionMode, selectedItemIds = emptySet()) }
     }
