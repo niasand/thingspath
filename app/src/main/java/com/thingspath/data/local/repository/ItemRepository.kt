@@ -7,139 +7,95 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.thingspath.data.local.db.ItemDao
+import com.thingspath.data.local.db.ItemEntity
+import com.thingspath.data.local.db.toEntity
+import com.thingspath.data.local.db.toItem
 import com.thingspath.data.model.Item
 import com.thingspath.data.remote.D1ApiService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ItemRepository @Inject constructor(
     private val d1ApiService: D1ApiService,
+    private val itemDao: ItemDao,
     private val application: Application,
     private val imageLoader: ImageLoader
 ) {
     private val gson = Gson()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val cacheFile = File(application.filesDir, "items_cache.json")
 
-    // In-memory cache for reactive Flow support
-    private val _items = MutableStateFlow<List<Item>>(emptyList())
-    val items: Flow<List<Item>> = _items.asStateFlow()
+    // 内存索引：由 Room Flow 驱动更新，支持 getCachedItemById() 同步读取
+    private val cachedItems = ConcurrentHashMap<Long, Item>()
+
+    // Room Flow 自动在表变更时发射，替代手动 StateFlow
+    val items: Flow<List<Item>> = itemDao.getAllItems().map { entities ->
+        entities.map { it.toItem() }
+    }
 
     init {
+        // 观察 Room Flow，同步更新内存索引 + 预取图片
+        scope.launch {
+            items.collect { itemList ->
+                cachedItems.clear()
+                itemList.forEach { cachedItems[it.id] = it }
+                prefetchImages(itemList)
+            }
+        }
+
+        // 首次启动：Room 为空时从 D1 拉取数据
         scope.launch {
             try {
                 d1ApiService.createTableIfNotExists()
-                // 1. Load from local cache first (instant UI)
-                loadFromLocalCache()
-                // 2. Then refresh from D1 (background update)
-                refreshCache()
+                val count = itemDao.itemCount()
+                if (count == 0) {
+                    Log.d(TAG, "Room is empty, pulling from D1...")
+                    pullFromD1()
+                } else {
+                    Log.d(TAG, "Room has $count items, skipping D1 pull")
+                    // 启动后仍然预取图片
+                    items.first().let { prefetchImages(it) }
+                }
             } catch (e: Exception) {
-                Log.e("ItemRepository", "Failed to initialize", e)
+                Log.e(TAG, "Failed to initialize", e)
             }
         }
     }
 
-    private fun loadFromLocalCache() {
-        try {
-            if (!cacheFile.exists()) return
-            val json = cacheFile.readText()
-            if (json.isBlank()) return
-            val type = object : TypeToken<List<Item>>() {}.type
-            val items: List<Item> = gson.fromJson(json, type) ?: return
-            _items.value = items
-            Log.d("ItemRepository", "Loaded ${items.size} items from local cache")
-        } catch (e: Exception) {
-            Log.w("ItemRepository", "Failed to load local cache", e)
-        }
-    }
+    // ========== 公开 API（接口与改造前一致）==========
 
-    private fun saveToLocalCache(items: List<Item>) {
-        try {
-            cacheFile.writeText(gson.toJson(items))
-        } catch (e: Exception) {
-            Log.w("ItemRepository", "Failed to save local cache", e)
-        }
-    }
-
-    suspend fun refreshFromRemote() = refreshCache()
-
-    private suspend fun refreshCache() {
-        try {
-            val rows = d1ApiService.getAllItems()
-            val items = rows.map { it.toItem() }
-            _items.value = items
-            saveToLocalCache(items)
-            Log.d("ItemRepository", "Cache refreshed from D1, ${items.size} items")
-            // 预取所有 R2 图片到 Coil 磁盘缓存，下次打开详情页无需再从 R2 下载
-            prefetchImages(items)
-        } catch (e: Exception) {
-            Log.e("ItemRepository", "Failed to refresh from D1", e)
-        }
-    }
-
-    /**
-     * 将所有 R2 远程图片入队预缓存到 Coil 的磁盘缓存。
-     * 这是 fire-and-forget 操作，不阻塞 UI。
-     */
-    private fun prefetchImages(items: List<Item>) {
-        val urls = items
-            .flatMap { it.imagePaths }
-            .filter { it.startsWith("http://") || it.startsWith("https://") }
-            .distinct()
-
-        if (urls.isEmpty()) return
-
-        Log.d("ItemRepository", "Pre-fetching ${urls.size} remote images to disk cache")
-        urls.forEach { url ->
-            val request = ImageRequest.Builder(application)
-                .data(url)
-                .diskCachePolicy(CachePolicy.ENABLED)
-                .memoryCachePolicy(CachePolicy.ENABLED)
-                .build()
-            imageLoader.enqueue(request)
-        }
-    }
+    suspend fun refreshFromRemote() = pullFromD1()
 
     fun getAllItems(): Flow<List<Item>> = items
 
     /**
-     * 同步读取内存缓存中的物品，用于详情页即时展示，无需 loading 状态。
-     * 缓存未命中时返回 null，调用方应回退到 suspend 版本的 getItemById()。
+     * 同步读取内存缓存，用于详情页即时展示。
      */
-    fun getCachedItemById(itemId: Long): Item? {
-        return _items.value.find { it.id == itemId }
-    }
+    fun getCachedItemById(itemId: Long): Item? = cachedItems[itemId]
 
     fun searchItems(searchQuery: String): Flow<List<Item>> {
-        return items
-    }
-
-    suspend fun getItemById(itemId: Long): Item? {
-        // 优先从内存缓存读取，与列表页一致实现即时加载
-        _items.value.find { it.id == itemId }?.let { return it }
-
-        // 缓存未命中时回退到 D1 网络请求
-        return withContext(Dispatchers.IO) {
-            try {
-                val rows = d1ApiService.getItemById(itemId)
-                rows.firstOrNull()?.toItem()
-            } catch (e: Exception) {
-                Log.e("ItemRepository", "getItemById failed", e)
-                null
-            }
+        return itemDao.searchItems(searchQuery).map { entities ->
+            entities.map { it.toItem() }
         }
     }
 
+    suspend fun getItemById(itemId: Long): Item? {
+        return cachedItems[itemId] ?: itemDao.getItemById(itemId)?.toItem()
+    }
+
+    /**
+     * 插入物品：D1 优先获取真实 ID，然后写入 Room。
+     */
     suspend fun insertItem(item: Item): Long {
         return withContext(Dispatchers.IO) {
             val id = d1ApiService.insertItem(
@@ -154,7 +110,9 @@ class ItemRepository @Inject constructor(
                 createdAt = item.createdAt,
                 updatedAt = item.updatedAt
             )
-            refreshCache()
+            val entity = item.copy(id = id).toEntity()
+            itemDao.insertItem(entity)
+            Log.d(TAG, "Inserted item $id to Room + D1")
             id
         }
     }
@@ -165,67 +123,196 @@ class ItemRepository @Inject constructor(
         }
     }
 
+    /**
+     * 更新物品：Room 先写，然后同步到 D1。
+     */
     suspend fun updateItem(item: Item) {
         withContext(Dispatchers.IO) {
-            d1ApiService.updateItem(
-                id = item.id,
-                name = item.name,
-                imagePaths = gson.toJson(item.imagePaths),
-                location = item.location,
-                purchaseDate = item.purchaseDate,
-                purchasePrice = item.purchasePrice,
-                usageDays = item.usageDays,
-                note = item.note,
-                tags = gson.toJson(item.tags),
-                updatedAt = System.currentTimeMillis()
+            val now = System.currentTimeMillis()
+            val entity = item.copy(updatedAt = now).toEntity()
+            itemDao.updateItem(
+                id = entity.id,
+                name = entity.name,
+                imagePaths = entity.imagePaths,
+                imagePath = entity.imagePath,
+                location = entity.location,
+                purchaseDate = entity.purchaseDate,
+                purchasePrice = entity.purchasePrice,
+                usageDays = entity.usageDays,
+                note = entity.note,
+                tags = entity.tags,
+                updatedAt = entity.updatedAt
             )
-            refreshCache()
+            try {
+                d1ApiService.updateItem(
+                    id = item.id,
+                    name = item.name,
+                    imagePaths = gson.toJson(item.imagePaths),
+                    location = item.location,
+                    purchaseDate = item.purchaseDate,
+                    purchasePrice = item.purchasePrice,
+                    usageDays = item.usageDays,
+                    note = item.note,
+                    tags = gson.toJson(item.tags),
+                    updatedAt = now
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to sync update to D1 for item ${item.id}", e)
+            }
         }
     }
 
+    /**
+     * 删除物品：Room 先删，然后同步到 D1。
+     */
     suspend fun deleteItem(item: Item) {
         withContext(Dispatchers.IO) {
-            d1ApiService.deleteItemById(item.id)
-            refreshCache()
+            itemDao.deleteItemById(item.id)
+            try {
+                d1ApiService.deleteItemById(item.id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to sync delete to D1 for item ${item.id}", e)
+            }
         }
     }
 
     suspend fun deleteItemById(itemId: Long) {
         withContext(Dispatchers.IO) {
-            d1ApiService.deleteItemById(itemId)
-            refreshCache()
+            itemDao.deleteItemById(itemId)
+            try {
+                d1ApiService.deleteItemById(itemId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to sync delete to D1 for item $itemId", e)
+            }
         }
     }
 
     suspend fun deleteItemsByIds(ids: Set<Long>) {
         withContext(Dispatchers.IO) {
-            d1ApiService.deleteItemsByIds(ids.toList())
-            refreshCache()
+            itemDao.deleteItemsByIds(ids.toList())
+            try {
+                d1ApiService.deleteItemsByIds(ids.toList())
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to sync bulk delete to D1 for ids $ids", e)
+            }
         }
     }
 
     suspend fun deleteAllItems() {
         withContext(Dispatchers.IO) {
-            d1ApiService.executeQuery("DELETE FROM items")
-            refreshCache()
+            // Room 本地全量删除，D1 暂不处理（避免误删远端数据）
+            itemDao.getAllItems().first().forEach { entity ->
+                itemDao.deleteItemById(entity.id)
+            }
         }
     }
 
-    private fun Map<String, Any?>.toItem(): Item {
-        return Item(
-            id = (this["id"] as? Number)?.toLong() ?: 0,
-            name = this["name"] as? String ?: "",
-            imagePaths = parseJsonField(this["image_paths"]),
-            imagePath = parseJsonField(this["image_paths"]).firstOrNull(),
-            location = this["location"] as? String,
-            purchaseDate = (this["purchase_date"] as? Number)?.toLong(),
-            purchasePrice = (this["purchase_price"] as? Number)?.toDouble() ?: 0.0,
-            usageDays = (this["usage_days"] as? Number)?.toInt(),
-            note = this["note"] as? String,
-            tags = parseJsonField(this["tags"]),
-            createdAt = (this["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
-            updatedAt = (this["updated_at"] as? Number)?.toLong() ?: System.currentTimeMillis()
-        )
+    /**
+     * 将 Room 中所有本地数据同步到远端 D1。
+     * 用于设置页面的手动同步功能。
+     */
+    suspend fun syncLocalToRemote() {
+        withContext(Dispatchers.IO) {
+            try {
+                val localItems = itemDao.getAllItems().first()
+                var syncCount = 0
+                var errorCount = 0
+
+                for (item in localItems) {
+                    try {
+                        // 使用 INSERT OR REPLACE 语义：尝试插入，已存在则更新
+                        d1ApiService.updateItem(
+                            id = item.id,
+                            name = item.name,
+                            imagePaths = item.imagePaths,
+                            location = item.location,
+                            purchaseDate = item.purchaseDate,
+                            purchasePrice = item.purchasePrice,
+                            usageDays = item.usageDays,
+                            note = item.note,
+                            tags = item.tags,
+                            updatedAt = item.updatedAt
+                        )
+                        syncCount++
+                    } catch (e: Exception) {
+                        // 如果 UPDATE 失败（可能 D1 上不存在），尝试 INSERT
+                        try {
+                            d1ApiService.insertItem(
+                                name = item.name,
+                                imagePaths = item.imagePaths,
+                                location = item.location,
+                                purchaseDate = item.purchaseDate,
+                                purchasePrice = item.purchasePrice,
+                                usageDays = item.usageDays,
+                                note = item.note,
+                                tags = item.tags,
+                                createdAt = item.createdAt,
+                                updatedAt = item.updatedAt
+                            )
+                            syncCount++
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Failed to sync item ${item.id} to D1", e2)
+                            errorCount++
+                        }
+                    }
+                }
+
+                Log.d(TAG, "Sync complete: $syncCount synced, $errorCount errors, ${localItems.size} total")
+            } catch (e: Exception) {
+                Log.e(TAG, "syncLocalToRemote failed", e)
+                throw e
+            }
+        }
+    }
+
+    // ========== 内部方法 ==========
+
+    /**
+     * 从 D1 拉取全部数据写入 Room（INSERT OR REPLACE）。
+     */
+    private suspend fun pullFromD1() {
+        try {
+            val rows = d1ApiService.getAllItems()
+            val entities = rows.map { row ->
+                ItemEntity(
+                    id = (row["id"] as? Number)?.toLong() ?: 0,
+                    name = row["name"] as? String ?: "",
+                    imagePaths = row["image_paths"] as? String ?: "[]",
+                    imagePath = parseJsonField(row["image_paths"]).firstOrNull(),
+                    location = row["location"] as? String,
+                    purchaseDate = (row["purchase_date"] as? Number)?.toLong(),
+                    purchasePrice = (row["purchase_price"] as? Number)?.toDouble() ?: 0.0,
+                    usageDays = (row["usage_days"] as? Number)?.toInt(),
+                    note = row["note"] as? String,
+                    tags = row["tags"] as? String ?: "[]",
+                    createdAt = (row["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                    updatedAt = (row["updated_at"] as? Number)?.toLong() ?: System.currentTimeMillis()
+                )
+            }
+            itemDao.insertItems(entities)
+            Log.d(TAG, "Pulled ${entities.size} items from D1 to Room")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to pull from D1", e)
+        }
+    }
+
+    private fun prefetchImages(items: List<Item>) {
+        val urls = items
+            .flatMap { it.imagePaths }
+            .filter { it.startsWith("http://") || it.startsWith("https://") }
+            .distinct()
+
+        if (urls.isEmpty()) return
+
+        Log.d(TAG, "Pre-fetching ${urls.size} remote images to disk cache")
+        urls.forEach { url ->
+            val request = ImageRequest.Builder(application)
+                .data(url)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .build()
+            imageLoader.enqueue(request)
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -240,10 +327,14 @@ class ItemRepository @Inject constructor(
                 val type = object : TypeToken<List<String>>() {}.type
                 gson.fromJson<List<String>>(value, type)
             } catch (e: Exception) {
-                Log.w("ItemRepository", "Failed to parse JSON list: $value", e)
+                Log.w(TAG, "Failed to parse JSON list: $value", e)
                 emptyList()
             }
         }
         return emptyList()
+    }
+
+    companion object {
+        private const val TAG = "ItemRepository"
     }
 }
