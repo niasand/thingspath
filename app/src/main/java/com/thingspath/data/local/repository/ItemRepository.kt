@@ -208,16 +208,36 @@ class ItemRepository @Inject constructor(
     }
 
     /**
-     * 双向同步：先拉取远端 D1 数据合并到本地，再将本地全量推送到 D1。
+     * 同步流程：拉取 D1 → 清空 D1 → 全量推送本地到 D1。
      * 用于设置页面的手动同步功能。
      */
     suspend fun syncLocalToRemote() {
         withContext(Dispatchers.IO) {
             try {
-                // Step 1: 拉取远端数据到本地（INSERT OR REPLACE 自动合并）
+                // Step 1: 拉取远端数据到本地（INSERT OR REPLACE 合并）
                 pullFromD1()
 
-                // Step 2: 合并后的本地数据全量推送到远端
+                // Step 2: 清空远端 D1 数据
+                val maxRetries = 2
+                var cleared = false
+                for (attempt in 1..maxRetries) {
+                    try {
+                        d1ApiService.deleteAllItems()
+                        cleared = true
+                        break
+                    } catch (e: Exception) {
+                        Log.e(TAG, "清空 D1 失败 (第${attempt}次)", e)
+                        if (attempt == maxRetries) {
+                            throw e
+                        }
+                    }
+                }
+                if (!cleared) {
+                    Log.e(TAG, "清空 D1 重试耗尽，同步中止")
+                    return@withContext
+                }
+
+                // Step 3: 合并后的本地数据全量推送到远端
                 val localItems = itemDao.getAllItems().first()
                 var syncCount = 0
                 var errorCount = 0

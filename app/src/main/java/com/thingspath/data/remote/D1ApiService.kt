@@ -142,6 +142,10 @@ class D1ApiService @Inject constructor() {
         executeQuery("DELETE FROM items WHERE id IN ($placeholders)", ids)
     }
 
+    suspend fun deleteAllItems() {
+        executeQuery("DELETE FROM items")
+    }
+
     suspend fun createTableIfNotExists() {
         executeQuery(
             """CREATE TABLE IF NOT EXISTS items (
