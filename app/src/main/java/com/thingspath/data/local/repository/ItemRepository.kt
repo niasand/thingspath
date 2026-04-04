@@ -208,12 +208,16 @@ class ItemRepository @Inject constructor(
     }
 
     /**
-     * 将 Room 中所有本地数据同步到远端 D1。
+     * 双向同步：先拉取远端 D1 数据合并到本地，再将本地全量推送到 D1。
      * 用于设置页面的手动同步功能。
      */
     suspend fun syncLocalToRemote() {
         withContext(Dispatchers.IO) {
             try {
+                // Step 1: 拉取远端数据到本地（INSERT OR REPLACE 自动合并）
+                pullFromD1()
+
+                // Step 2: 合并后的本地数据全量推送到远端
                 val localItems = itemDao.getAllItems().first()
                 var syncCount = 0
                 var errorCount = 0
