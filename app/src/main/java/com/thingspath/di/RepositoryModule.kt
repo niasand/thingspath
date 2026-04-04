@@ -15,6 +15,6 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideImageLoader(app: ThingsPathApp): ImageLoader {
-        return app.imageLoader
+        return app.newImageLoader()
     }
 }
