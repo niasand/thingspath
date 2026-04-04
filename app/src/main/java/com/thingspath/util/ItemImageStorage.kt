@@ -2,6 +2,8 @@ package com.thingspath.util
 
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -34,14 +36,14 @@ object ItemImageStorage {
      */
     private fun saveToPrivateDir(context: Context, sourceUri: Uri): String? {
         val privatePicsDir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "items").apply { mkdirs() }
-        val mimeType = context.contentResolver.getType(sourceUri) ?: "image/jpeg"
-        val extension = mimeTypeToExtension(mimeType)
-        val destFile = File(privatePicsDir, "${System.currentTimeMillis()}.$extension")
+        val destFile = File(privatePicsDir, "${System.currentTimeMillis()}.jpg")
 
         context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            val bitmap = BitmapFactory.decodeStream(input) ?: return null
             destFile.outputStream().use { output ->
-                input.copyTo(output)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, output)
             }
+            bitmap.recycle()
         } ?: return null
 
         return destFile.absolutePath
