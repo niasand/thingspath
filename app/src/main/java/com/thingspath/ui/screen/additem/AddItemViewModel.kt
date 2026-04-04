@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.Item
+import com.thingspath.data.remote.repository.R2ImageRepository
 import com.thingspath.domain.usecase.AddItemUseCase
 import com.thingspath.domain.usecase.UploadImageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,7 @@ import javax.inject.Inject
 class AddItemViewModel @Inject constructor(
     private val addItemUseCase: AddItemUseCase,
     private val uploadImageUseCase: UploadImageUseCase,
+    private val r2ImageRepository: R2ImageRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -121,6 +123,15 @@ class AddItemViewModel @Inject constructor(
     }
 
     fun removeImage(index: Int) {
+        val path = _state.value.imagePaths.getOrNull(index)
+        if (path != null && r2ImageRepository.isR2Url(path)) {
+            val key = r2ImageRepository.extractKeyFromUrl(path)
+            if (key != null) {
+                viewModelScope.launch {
+                    r2ImageRepository.deleteImage(key)
+                }
+            }
+        }
         _state.update { it.copy(imagePaths = it.imagePaths.filterIndexed { idx, _ -> idx != index }) }
     }
 
