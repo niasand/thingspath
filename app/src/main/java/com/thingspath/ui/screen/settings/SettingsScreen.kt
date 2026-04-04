@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -16,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.local.datastore.SettingsRepository
+import com.thingspath.data.local.repository.ItemRepository
 import com.thingspath.domain.usecase.ExportItemsUseCase
 import com.thingspath.domain.usecase.ImportItemsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +33,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
+    val isSyncing: Boolean = false,
     val infoMessage: String? = null,
     val errorMessage: String? = null
 )
@@ -40,6 +43,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val exportItemsUseCase: ExportItemsUseCase,
     private val importItemsUseCase: ImportItemsUseCase,
+    private val itemRepository: ItemRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -84,6 +88,21 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isImporting = false, infoMessage = "导入成功")
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isImporting = false, errorMessage = e.message ?: "导入失败")
+            }
+        }
+    }
+
+    /**
+     * 将本地 Room 数据同步到远端 D1 数据库。
+     */
+    fun syncToRemote() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isSyncing = true, infoMessage = null, errorMessage = null)
+                itemRepository.syncLocalToRemote()
+                _uiState.value = _uiState.value.copy(isSyncing = false, infoMessage = "同步成功")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSyncing = false, errorMessage = e.message ?: "同步失败")
             }
         }
     }
@@ -136,7 +155,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             OutlinedTextField(
                 value = inputKey,
                 onValueChange = { inputKey = it },
@@ -145,17 +164,17 @@ fun SettingsScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation()
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "The API Key is stored locally on your device.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Button(
                 onClick = {
                     scope.launch {
@@ -170,6 +189,38 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // ========== 数据同步 ==========
+            Text(
+                text = "数据同步",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "将本地数据同步到云端 D1 数据库",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { viewModel.syncToRemote() },
+                enabled = !uiState.isSyncing,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudUpload,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (uiState.isSyncing) "同步中..." else "同步到云端")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ========== 数据导入/导出 ==========
             Text(
                 text = "数据导入/导出",
                 style = MaterialTheme.typography.titleMedium,
@@ -201,14 +252,14 @@ fun SettingsScreen(
             ) {
                 OutlinedButton(
                     onClick = { exportLauncher.launch("thingspath_backup.json") },
-                    enabled = !uiState.isExporting && !uiState.isImporting,
+                    enabled = !uiState.isExporting && !uiState.isImporting && !uiState.isSyncing,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (uiState.isExporting) "导出中..." else "导出")
                 }
                 OutlinedButton(
                     onClick = { importLauncher.launch(arrayOf("application/json")) },
-                    enabled = !uiState.isExporting && !uiState.isImporting,
+                    enabled = !uiState.isExporting && !uiState.isImporting && !uiState.isSyncing,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (uiState.isImporting) "导入中..." else "导入")
