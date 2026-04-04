@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -103,12 +104,8 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSyncing = true, infoMessage = null, errorMessage = null)
                 itemRepository.syncLocalToRemote()
                 _uiState.value = _uiState.value.copy(isSyncing = false, infoMessage = "同步成功")
-                delay(1500)
-                dismissMessage()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSyncing = false, errorMessage = e.message ?: "同步失败")
-                delay(1500)
-                dismissMessage()
             }
         }
     }
@@ -125,14 +122,18 @@ fun SettingsScreen(
     var inputKey by remember(apiKey) { mutableStateOf(apiKey ?: "") }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var snackbarIsError by remember { mutableStateOf(false) }
 
-    // Snackbar: 同步/导入/导出成功失败时自动弹出
+    // Snackbar: 同步/导入/导出成功失败时自动弹出，1秒后消失
     LaunchedEffect(uiState.infoMessage, uiState.errorMessage) {
         val msg = uiState.infoMessage ?: uiState.errorMessage
         if (msg != null) {
+            snackbarIsError = uiState.errorMessage != null
+            // 并行协程：1秒后主动关闭 snackbar
+            launch { delay(300); snackbarHostState.currentSnackbarData?.dismiss() }
             snackbarHostState.showSnackbar(
                 message = msg,
-                duration = SnackbarDuration.Short
+                duration = SnackbarDuration.Indefinite
             )
             viewModel.dismissMessage()
         }
@@ -161,7 +162,26 @@ fun SettingsScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                val containerColor = if (!snackbarIsError) {
+                    Color(0xFFDBEAFE) // 成功：淡蓝色（不透明）
+                } else {
+                    SnackbarDefaults.color
+                }
+                val contentColor = if (snackbarIsError) {
+                    Color(0xFFE53935) // 失败：红色文字
+                } else {
+                    Color.Black // 成功：黑色文字
+                }
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = containerColor,
+                    contentColor = contentColor,
+                    shape = SnackbarDefaults.shape
+                )
+            }
+        }
     ) { padding ->
         Column(
             modifier = Modifier
