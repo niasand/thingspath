@@ -1,156 +1,168 @@
 package com.thingspath.data.local.repository
 
-import com.thingspath.data.local.dao.ItemDao
-import com.thingspath.data.local.entity.ItemEntity
-import com.thingspath.data.model.Item
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import android.util.Log
-import kotlinx.coroutines.DelicateCoroutinesApi
+import com.thingspath.data.model.Item
+import com.thingspath.data.remote.D1ApiService
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ItemRepository @Inject constructor(
-    private val itemDao: ItemDao,
-    private val fileRepository: FileRepository
+    private val d1ApiService: D1ApiService
 ) {
     private val gson = Gson()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun getAllItems(): Flow<List<Item>> {
-        return itemDao.getAllItems().map { entities ->
-            entities.map { it.toDomainModel() }
+    // In-memory cache for reactive Flow support
+    private val _items = MutableStateFlow<List<Item>>(emptyList())
+    val items: Flow<List<Item>> = _items.asStateFlow()
+
+    init {
+        scope.launch {
+            try {
+                d1ApiService.createTableIfNotExists()
+                refreshCache()
+            } catch (e: Exception) {
+                Log.e("ItemRepository", "Failed to initialize D1", e)
+            }
         }
     }
 
-    fun searchItems(searchQuery: String): Flow<List<Item>> {
-        return itemDao.searchItems(searchQuery).map { entities ->
-            entities.map { it.toDomainModel() }
+    private suspend fun refreshCache() {
+        try {
+            val rows = d1ApiService.getAllItems()
+            _items.value = rows.map { it.toItem() }
+            Log.d("ItemRepository", "Cache refreshed, ${_items.value.size} items")
+        } catch (e: Exception) {
+            Log.e("ItemRepository", "Failed to refresh cache", e)
         }
+    }
+
+    fun getAllItems(): Flow<List<Item>> = items
+
+    fun searchItems(searchQuery: String): Flow<List<Item>> {
+        // Search is done client-side from cache; the query already has wildcards from GetItemsUseCase
+        return items
     }
 
     suspend fun getItemById(itemId: Long): Item? {
-        return itemDao.getItemById(itemId)?.toDomainModel()
+        return withContext(Dispatchers.IO) {
+            try {
+                val rows = d1ApiService.getItemById(itemId)
+                rows.firstOrNull()?.toItem()
+            } catch (e: Exception) {
+                Log.e("ItemRepository", "getItemById failed", e)
+                null
+            }
+        }
     }
 
     suspend fun insertItem(item: Item): Long {
-        val entity = item.toEntity()
-        val id = itemDao.insertItem(entity)
-        backupData()
-        return id
+        return withContext(Dispatchers.IO) {
+            val id = d1ApiService.insertItem(
+                name = item.name,
+                imagePaths = gson.toJson(item.imagePaths),
+                location = item.location,
+                purchaseDate = item.purchaseDate,
+                purchasePrice = item.purchasePrice,
+                usageDays = item.usageDays,
+                note = item.note,
+                tags = gson.toJson(item.tags),
+                createdAt = item.createdAt,
+                updatedAt = item.updatedAt
+            )
+            refreshCache()
+            id
+        }
     }
 
     suspend fun insertItems(items: List<Item>) {
-        val entities = items.map { it.toEntity() }
-        itemDao.insertItems(entities)
-        backupData()
+        withContext(Dispatchers.IO) {
+            items.forEach { item -> insertItem(item) }
+        }
     }
 
     suspend fun updateItem(item: Item) {
-        val entity = item.toEntity()
-        itemDao.updateItem(entity)
-        backupData()
+        withContext(Dispatchers.IO) {
+            d1ApiService.updateItem(
+                id = item.id,
+                name = item.name,
+                imagePaths = gson.toJson(item.imagePaths),
+                location = item.location,
+                purchaseDate = item.purchaseDate,
+                purchasePrice = item.purchasePrice,
+                usageDays = item.usageDays,
+                note = item.note,
+                tags = gson.toJson(item.tags),
+                updatedAt = System.currentTimeMillis()
+            )
+            refreshCache()
+        }
     }
 
     suspend fun deleteItem(item: Item) {
-        val entity = item.toEntity()
-        itemDao.deleteItem(entity)
-        backupData()
+        withContext(Dispatchers.IO) {
+            d1ApiService.deleteItemById(item.id)
+            refreshCache()
+        }
     }
 
     suspend fun deleteItemById(itemId: Long) {
-        itemDao.deleteItemById(itemId)
-        backupData()
+        withContext(Dispatchers.IO) {
+            d1ApiService.deleteItemById(itemId)
+            refreshCache()
+        }
     }
 
     suspend fun deleteItemsByIds(ids: Set<Long>) {
-        itemDao.deleteItemsByIds(ids.toList())
-        backupData()
+        withContext(Dispatchers.IO) {
+            d1ApiService.deleteItemsByIds(ids.toList())
+            refreshCache()
+        }
     }
 
     suspend fun deleteAllItems() {
-        itemDao.deleteAllItems()
-        backupData()
-    }
-
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun backupData() {
-        GlobalScope.launch(Dispatchers.IO) {
-            try {
-                val entities = itemDao.getAllItemsSync()
-                val items = entities.map { it.toDomainModel() }
-                val json = gson.toJson(items)
-                fileRepository.saveBackup(json)
-            } catch (e: Exception) {
-                Log.e("ItemRepository", "Backup failed", e)
-            }
+        withContext(Dispatchers.IO) {
+            d1ApiService.executeQuery("DELETE FROM items")
+            refreshCache()
         }
     }
 
-    suspend fun restoreDataIfNeeded() {
-        try {
-            if (itemDao.getAllItemsSync().isEmpty()) {
-                val json = fileRepository.readBackup()
-                if (json != null) {
-                    val type = object : TypeToken<List<Item>>() {}.type
-                    val items: List<Item> = gson.fromJson(json, type)
-                    if (items.isNotEmpty()) {
-                        val entities = items.map { it.toEntity() }
-                        itemDao.insertItems(entities)
-                        Log.d("ItemRepository", "Restored ${items.size} items from backup")
-                    }
-                }
-            }
+    private fun Map<String, Any?>.toItem(): Item {
+        return Item(
+            id = (this["id"] as? Number)?.toLong() ?: 0,
+            name = this["name"] as? String ?: "",
+            imagePath = null,
+            imagePaths = parseJsonList(this["image_paths"] as? String),
+            location = this["location"] as? String,
+            purchaseDate = (this["purchase_date"] as? Number)?.toLong(),
+            purchasePrice = (this["purchase_price"] as? Number)?.toDouble() ?: 0.0,
+            usageDays = (this["usage_days"] as? Number)?.toInt(),
+            note = this["note"] as? String,
+            tags = parseJsonList(this["tags"] as? String),
+            createdAt = (this["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            updatedAt = (this["updated_at"] as? Number)?.toLong() ?: System.currentTimeMillis()
+        )
+    }
+
+    private fun parseJsonList(json: String?): List<String> {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
+            val type = object : TypeToken<List<String>>() {}.type
+            gson.fromJson<List<String>>(json, type)
         } catch (e: Exception) {
-            Log.e("ItemRepository", "Restore failed", e)
+            Log.w("ItemRepository", "Failed to parse JSON list: $json", e)
+            emptyList()
         }
     }
-}
-
-// Extension functions for mapping between Entity and Domain model
-private fun ItemEntity.toDomainModel(): Item {
-    // Backward compat: if imagePaths is empty but imagePath exists, migrate to list
-    val paths = if (imagePaths.isBlank()) {
-        listOfNotNull(imagePath)
-    } else {
-        imagePaths.split("|").filter { it.isNotBlank() }
-    }
-    return Item(
-        id = id,
-        name = name,
-        imagePath = paths.firstOrNull(),
-        imagePaths = paths,
-        location = location,
-        purchaseDate = purchaseDate,
-        purchasePrice = purchasePrice,
-        usageDays = usageDays,
-        note = note,
-        tags = if (tags.isBlank()) emptyList() else tags.split(","),
-        createdAt = createdAt,
-        updatedAt = updatedAt
-    )
-}
-
-private fun Item.toEntity(): ItemEntity {
-    // Merge: if imagePaths is empty but imagePath is set (old backup restore), use imagePath as list
-    val paths = if (imagePaths.isEmpty() && imagePath != null) listOf(imagePath) else imagePaths
-    return ItemEntity(
-        id = id,
-        name = name,
-        imagePath = paths.firstOrNull(),
-        imagePaths = paths.joinToString("|"),
-        location = location,
-        purchaseDate = purchaseDate,
-        purchasePrice = purchasePrice,
-        usageDays = usageDays,
-        note = note,
-        tags = tags.joinToString(","),
-        createdAt = createdAt,
-        updatedAt = System.currentTimeMillis()
-    )
 }

@@ -1,5 +1,6 @@
 package com.thingspath.ui.screen.settings
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,10 +16,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.local.datastore.SettingsRepository
-import com.thingspath.data.local.repository.FileRepository
 import com.thingspath.domain.usecase.ExportItemsUseCase
 import com.thingspath.domain.usecase.ImportItemsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val exportItemsUseCase: ExportItemsUseCase,
     private val importItemsUseCase: ImportItemsUseCase,
-    private val fileRepository: FileRepository
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     val apiKey = settingsRepository.apiKey.stateIn(
@@ -64,7 +65,8 @@ class SettingsViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isExporting = true, infoMessage = null, errorMessage = null)
                 val jsonString = exportItemsUseCase()
-                fileRepository.writeString(uri, jsonString)
+                context.contentResolver.openOutputStream(uri)?.use { it.write(jsonString.toByteArray()) }
+                    ?: throw Exception("Failed to open output stream")
                 _uiState.value = _uiState.value.copy(isExporting = false, infoMessage = "导出成功")
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isExporting = false, errorMessage = e.message ?: "导出失败")
@@ -76,7 +78,8 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isImporting = true, infoMessage = null, errorMessage = null)
-                val jsonString = fileRepository.readString(uri)
+                val jsonString = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                    ?: throw Exception("Failed to read input stream")
                 importItemsUseCase(jsonString)
                 _uiState.value = _uiState.value.copy(isImporting = false, infoMessage = "导入成功")
             } catch (e: Exception) {

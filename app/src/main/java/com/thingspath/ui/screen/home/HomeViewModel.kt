@@ -6,14 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.thingspath.data.model.Item
 import com.thingspath.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-import com.thingspath.data.local.repository.FileRepository
 import com.thingspath.data.local.repository.ItemRepository
 import com.thingspath.data.local.datastore.SettingsRepository
+import android.content.Context
 import android.net.Uri
 
 import android.util.Log
@@ -36,19 +37,16 @@ class HomeViewModel @Inject constructor(
     private val deleteItemUseCase: DeleteItemUseCase,
     private val exportItemsUseCase: ExportItemsUseCase,
     private val importItemsUseCase: ImportItemsUseCase,
-    private val fileRepository: FileRepository,
     private val itemRepository: ItemRepository,
     private val siliconFlowRepository: SiliconFlowRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            itemRepository.restoreDataIfNeeded()
-        }
         observeSettings()
         loadItems()
     }
@@ -292,7 +290,8 @@ class HomeViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isExporting = true, exportSuccess = false, errorMessage = null) }
                 val jsonString = exportItemsUseCase()
-                fileRepository.writeString(uri, jsonString)
+                context.contentResolver.openOutputStream(uri)?.use { it.write(jsonString.toByteArray()) }
+                    ?: throw IOException("Failed to open output stream")
                 _state.update { it.copy(isExporting = false, exportSuccess = true) }
                 delay(1000)
                 dismissMessage()
@@ -306,7 +305,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isImporting = true, importSuccess = false, errorMessage = null) }
-                val jsonString = fileRepository.readString(uri)
+                val jsonString = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                    ?: throw IOException("Failed to read input stream")
                 importItemsUseCase(jsonString)
                 _state.update { it.copy(isImporting = false, importSuccess = true) }
                 delay(1000)

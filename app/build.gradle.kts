@@ -34,6 +34,9 @@ android {
         buildConfigField("String", "R2_SECRET_ACCESS_KEY", "\"${localProperties.getProperty("R2_SECRET_ACCESS_KEY", "")}\"")
         buildConfigField("String", "R2_BUCKET_NAME", "\"${localProperties.getProperty("R2_BUCKET_NAME", "")}\"")
         buildConfigField("String", "R2_PUBLIC_URL", "\"${localProperties.getProperty("R2_PUBLIC_URL", "")}\"")
+        buildConfigField("String", "D1_ACCOUNT_ID", "\"${localProperties.getProperty("D1_ACCOUNT_ID", "")}\"")
+        buildConfigField("String", "D1_DATABASE_ID", "\"${localProperties.getProperty("D1_DATABASE_ID", "")}\"")
+        buildConfigField("String", "D1_API_TOKEN", "\"${localProperties.getProperty("D1_API_TOKEN", "")}\"")
     }
 
     buildTypes {
@@ -94,20 +97,10 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Room Database
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-
     // Hilt/Dagger - Dependency Injection
     implementation("com.google.dagger:hilt-android:2.48.1")
     ksp("com.google.dagger:hilt-compiler:2.48.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-
-    // WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
@@ -130,10 +123,6 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // AWS S3 for Cloudflare R2
-    implementation(platform("aws.sdk.kotlin:bom:1.3.102"))
-    implementation("aws.sdk.kotlin:s3")
-
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
@@ -149,9 +138,4 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-}
-
-// Room schema export location for migration tracking
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
 }

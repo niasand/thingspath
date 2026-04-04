@@ -57,3 +57,6 @@ Rules:
 
 # 其他配置（可选）
 ALLOWED_TOOLS=Bash,git,go,file
+
+# git commit 
+每次git commit的时候，必须在git commit message里面描述清楚本次改动的具体内容，以及改动原因。不要废话，要写有用的信息
