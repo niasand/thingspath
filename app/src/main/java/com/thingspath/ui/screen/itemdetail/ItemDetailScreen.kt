@@ -206,8 +206,8 @@ fun ItemDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .imePadding()
                     .verticalScroll(scrollState)
+                    .imePadding()
             )
         }
 
@@ -489,7 +489,6 @@ fun EditModeContent(
         onValueChange = onNoteChange,
         label = { Text("Note") },
         modifier = Modifier.fillMaxWidth(),
-        minLines = 3,
         maxLines = 5,
         placeholder = { Text("Add any notes here...") }
     )

@@ -39,6 +39,9 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 android:value="androidx.startup"
                 tools:node="remove" />
+            <meta-data
+                android:name="coil.imageLoaderFactory"
+                android:value=".ThingsPathApp" />
         </provider>
 
         <!-- FileProvider for camera capture -->

@@ -1,5 +1,6 @@
 package com.thingspath.data.local.repository
 
+import android.app.Application
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -13,15 +14,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ItemRepository @Inject constructor(
-    private val d1ApiService: D1ApiService
+    private val d1ApiService: D1ApiService,
+    private val application: Application
 ) {
     private val gson = Gson()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val cacheFile = File(application.filesDir, "items_cache.json")
 
     // In-memory cache for reactive Flow support
     private val _items = MutableStateFlow<List<Item>>(emptyList())
@@ -31,27 +35,53 @@ class ItemRepository @Inject constructor(
         scope.launch {
             try {
                 d1ApiService.createTableIfNotExists()
+                // 1. Load from local cache first (instant UI)
+                loadFromLocalCache()
+                // 2. Then refresh from D1 (background update)
                 refreshCache()
             } catch (e: Exception) {
-                Log.e("ItemRepository", "Failed to initialize D1", e)
+                Log.e("ItemRepository", "Failed to initialize", e)
             }
+        }
+    }
+
+    private fun loadFromLocalCache() {
+        try {
+            if (!cacheFile.exists()) return
+            val json = cacheFile.readText()
+            if (json.isBlank()) return
+            val type = object : TypeToken<List<Item>>() {}.type
+            val items: List<Item> = gson.fromJson(json, type) ?: return
+            _items.value = items
+            Log.d("ItemRepository", "Loaded ${items.size} items from local cache")
+        } catch (e: Exception) {
+            Log.w("ItemRepository", "Failed to load local cache", e)
+        }
+    }
+
+    private fun saveToLocalCache(items: List<Item>) {
+        try {
+            cacheFile.writeText(gson.toJson(items))
+        } catch (e: Exception) {
+            Log.w("ItemRepository", "Failed to save local cache", e)
         }
     }
 
     private suspend fun refreshCache() {
         try {
             val rows = d1ApiService.getAllItems()
-            _items.value = rows.map { it.toItem() }
-            Log.d("ItemRepository", "Cache refreshed, ${_items.value.size} items")
+            val items = rows.map { it.toItem() }
+            _items.value = items
+            saveToLocalCache(items)
+            Log.d("ItemRepository", "Cache refreshed from D1, ${items.size} items")
         } catch (e: Exception) {
-            Log.e("ItemRepository", "Failed to refresh cache", e)
+            Log.e("ItemRepository", "Failed to refresh from D1", e)
         }
     }
 
     fun getAllItems(): Flow<List<Item>> = items
 
     fun searchItems(searchQuery: String): Flow<List<Item>> {
-        // Search is done client-side from cache; the query already has wildcards from GetItemsUseCase
         return items
     }
 
@@ -143,26 +173,34 @@ class ItemRepository @Inject constructor(
             id = (this["id"] as? Number)?.toLong() ?: 0,
             name = this["name"] as? String ?: "",
             imagePath = null,
-            imagePaths = parseJsonList(this["image_paths"] as? String),
+            imagePaths = parseJsonField(this["image_paths"]),
             location = this["location"] as? String,
             purchaseDate = (this["purchase_date"] as? Number)?.toLong(),
             purchasePrice = (this["purchase_price"] as? Number)?.toDouble() ?: 0.0,
             usageDays = (this["usage_days"] as? Number)?.toInt(),
             note = this["note"] as? String,
-            tags = parseJsonList(this["tags"] as? String),
+            tags = parseJsonField(this["tags"]),
             createdAt = (this["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             updatedAt = (this["updated_at"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
     }
 
-    private fun parseJsonList(json: String?): List<String> {
-        if (json.isNullOrBlank()) return emptyList()
-        return try {
-            val type = object : TypeToken<List<String>>() {}.type
-            gson.fromJson<List<String>>(json, type)
-        } catch (e: Exception) {
-            Log.w("ItemRepository", "Failed to parse JSON list: $json", e)
-            emptyList()
+    @Suppress("UNCHECKED_CAST")
+    private fun parseJsonField(value: Any?): List<String> {
+        if (value == null) return emptyList()
+        if (value is List<*>) {
+            return value.mapNotNull { it?.toString() }
         }
+        if (value is String) {
+            if (value.isBlank()) return emptyList()
+            return try {
+                val type = object : TypeToken<List<String>>() {}.type
+                gson.fromJson<List<String>>(value, type)
+            } catch (e: Exception) {
+                Log.w("ItemRepository", "Failed to parse JSON list: $value", e)
+                emptyList()
+            }
+        }
+        return emptyList()
     }
 }
