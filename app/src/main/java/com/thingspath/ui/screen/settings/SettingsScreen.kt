@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -101,8 +103,12 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSyncing = true, infoMessage = null, errorMessage = null)
                 itemRepository.syncLocalToRemote()
                 _uiState.value = _uiState.value.copy(isSyncing = false, infoMessage = "同步成功")
+                delay(1500)
+                dismissMessage()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSyncing = false, errorMessage = e.message ?: "同步失败")
+                delay(1500)
+                dismissMessage()
             }
         }
     }
@@ -118,6 +124,19 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var inputKey by remember(apiKey) { mutableStateOf(apiKey ?: "") }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Snackbar: 同步/导入/导出成功失败时自动弹出
+    LaunchedEffect(uiState.infoMessage, uiState.errorMessage) {
+        val msg = uiState.infoMessage ?: uiState.errorMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(
+                message = msg,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.dismissMessage()
+        }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -141,7 +160,8 @@ fun SettingsScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -228,24 +248,6 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (uiState.infoMessage != null) {
-                Text(
-                    text = uiState.infoMessage!!,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            if (uiState.errorMessage != null) {
-                Text(
-                    text = uiState.errorMessage!!,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -263,16 +265,6 @@ fun SettingsScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (uiState.isImporting) "导入中..." else "导入")
-                }
-            }
-
-            if (uiState.infoMessage != null || uiState.errorMessage != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(
-                    onClick = { viewModel.dismissMessage() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Dismiss")
                 }
             }
         }
