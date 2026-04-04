@@ -4,6 +4,8 @@
 *.ap_
 *.aab
 .claude/
+settings.json
+settings.local.json
 # Files for the ART/Dalvik VM
 *.dex
 
