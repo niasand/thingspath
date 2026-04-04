@@ -162,18 +162,42 @@ class D1ApiService @Inject constructor() {
 
     @Suppress("UNCHECKED_CAST")
     private fun parseResults(responseBody: String): List<Map<String, Any?>> {
-        val result = parseD1Result(responseBody)
-        return (result?.results?.firstOrNull() as? List<Map<String, Any?>>)
-            ?: emptyList()
+        return try {
+            val root = gson.fromJson(responseBody, Map::class.java) as Map<String, Any?>
+            val resultArray = root["result"] as? List<Map<String, Any?>>
+            val firstResult = resultArray?.firstOrNull() ?: return emptyList()
+            (firstResult["results"] as? List<Map<String, Any?>>) ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse D1 results", e)
+            emptyList()
+        }
     }
 
     private fun parseD1Result(responseBody: String): D1Result<*>? {
         return try {
-            val type = com.google.gson.reflect.TypeToken.getParameterized(
-                D1Result::class.java,
-                List::class.java
-            ).type
-            gson.fromJson<D1Result<*>>(responseBody, type)
+            val root = gson.fromJson(responseBody, Map::class.java) as Map<String, Any?>
+            val resultArray = root["result"] as? List<Map<String, Any?>>
+            val firstResult = resultArray?.firstOrNull() ?: return null
+            val results = firstResult["results"] as? List<*>
+            val success = firstResult["success"] as? Boolean ?: false
+            val meta = firstResult["meta"] as? Map<String, Any?>
+
+            D1Result(
+                results = results ?: emptyList(),
+                success = success,
+                errors = null,
+                meta = meta?.let {
+                    D1Meta(
+                        changed_db = it["changed_db"] as? Boolean ?: false,
+                        changes = (it["changes"] as? Number)?.toLong() ?: 0,
+                        duration = (it["duration"] as? Number)?.toLong() ?: 0,
+                        last_row_id = (it["last_row_id"] as? Number)?.toLong() ?: 0,
+                        rows_read = (it["rows_read"] as? Number)?.toLong() ?: 0,
+                        rows_written = (it["rows_written"] as? Number)?.toLong() ?: 0,
+                        size_after = (it["size_after"] as? Number)?.toLong() ?: 0
+                    )
+                }
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse D1 response", e)
             null
