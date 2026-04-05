@@ -124,12 +124,14 @@ class D1ApiService @Inject constructor() {
         note: String?,
         tags: String,
         updatedAt: Long
-    ) {
-        executeQuery(
+    ): Boolean {
+        val responseBody = executeQuery(
             """UPDATE items SET name = ?, image_paths = ?, location = ?, purchase_date = ?,
                purchase_price = ?, usage_days = ?, note = ?, tags = ?, updated_at = ? WHERE id = ?""",
             listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, updatedAt, id)
         )
+        val result = parseD1Result(responseBody)
+        return result?.meta?.changes ?: 0 > 0
     }
 
     suspend fun deleteItemById(itemId: Long) {

@@ -144,7 +144,7 @@ class ItemRepository @Inject constructor(
                 updatedAt = entity.updatedAt
             )
             try {
-                d1ApiService.updateItem(
+                val updated = d1ApiService.updateItem(
                     id = item.id,
                     name = item.name,
                     imagePaths = gson.toJson(item.imagePaths),
@@ -156,9 +156,8 @@ class ItemRepository @Inject constructor(
                     tags = gson.toJson(item.tags),
                     updatedAt = now
                 )
-            } catch (e: Exception) {
-                Log.w(TAG, "D1 UPDATE failed for item ${item.id}, trying INSERT")
-                try {
+                if (!updated) {
+                    Log.w(TAG, "D1 UPDATE matched 0 rows for item ${item.id}, trying INSERT")
                     d1ApiService.insertItem(
                         name = item.name,
                         imagePaths = gson.toJson(item.imagePaths),
@@ -171,9 +170,11 @@ class ItemRepository @Inject constructor(
                         createdAt = item.createdAt,
                         updatedAt = now
                     )
-                } catch (e2: Exception) {
-                    Log.e(TAG, "Failed to sync item ${item.id} to D1", e2)
+                } else {
+                    Log.d(TAG, "D1 UPDATE succeeded for item ${item.id}")
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to sync item ${item.id} to D1", e)
             }
         }
     }
