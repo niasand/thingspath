@@ -157,7 +157,23 @@ class ItemRepository @Inject constructor(
                     updatedAt = now
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync update to D1 for item ${item.id}", e)
+                Log.w(TAG, "D1 UPDATE failed for item ${item.id}, trying INSERT")
+                try {
+                    d1ApiService.insertItem(
+                        name = item.name,
+                        imagePaths = gson.toJson(item.imagePaths),
+                        location = item.location,
+                        purchaseDate = item.purchaseDate,
+                        purchasePrice = item.purchasePrice,
+                        usageDays = item.usageDays,
+                        note = item.note,
+                        tags = gson.toJson(item.tags),
+                        createdAt = item.createdAt,
+                        updatedAt = now
+                    )
+                } catch (e2: Exception) {
+                    Log.e(TAG, "Failed to sync item ${item.id} to D1", e2)
+                }
             }
         }
     }
