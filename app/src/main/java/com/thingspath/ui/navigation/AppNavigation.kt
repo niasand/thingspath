@@ -22,9 +22,6 @@ fun AppNavigation(
         composable(route = Screen.Home.route) {
             HomeScreen(
                 viewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-                onAddItemClick = {
-                    navController.navigate(Screen.AddItem.route)
-                },
                 onItemClick = { itemId ->
                     navController.navigate(Screen.ItemDetail.createRoute(itemId))
                 },

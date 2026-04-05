@@ -47,14 +47,12 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onAddItemClick: () -> Unit,
     onItemClick: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToStatistics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
-    var showFabMenu by remember { mutableStateOf(false) }
     var showAIDialog by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
 
@@ -216,38 +214,15 @@ fun HomeScreen(
             }
         },
         floatingActionButton = {
-            Box {
-                SmallFloatingActionButton(
-                    onClick = { showFabMenu = true },
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Item"
-                    )
-                }
-                DropdownMenu(
-                    expanded = showFabMenu,
-                    onDismissRequest = { showFabMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Manual Add") },
-                        leadingIcon = { Icon(Icons.Default.Add, null) },
-                        onClick = {
-                            showFabMenu = false
-                            onAddItemClick()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("AI Smart Add") },
-                        leadingIcon = { Icon(Icons.Default.AutoAwesome, null) },
-                        onClick = {
-                            showFabMenu = false
-                            showAIDialog = true
-                        }
-                    )
-                }
+            SmallFloatingActionButton(
+                onClick = { showAIDialog = true },
+                containerColor = Color(0xFFE3F2FD),
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "AI Smart Add"
+                )
             }
         },
         modifier = modifier,
