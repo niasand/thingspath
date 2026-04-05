@@ -157,8 +157,9 @@ class ItemRepository @Inject constructor(
                     updatedAt = now
                 )
                 if (!updated) {
-                    Log.w(TAG, "D1 UPDATE matched 0 rows for item ${item.id}, trying INSERT")
+                    Log.w(TAG, "D1 UPDATE matched 0 rows for item ${item.id}, trying INSERT with local id")
                     d1ApiService.insertItem(
+                        id = item.id,
                         name = item.name,
                         imagePaths = gson.toJson(item.imagePaths),
                         location = item.location,

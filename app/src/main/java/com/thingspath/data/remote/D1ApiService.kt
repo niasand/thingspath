@@ -93,6 +93,7 @@ class D1ApiService @Inject constructor() {
     }
 
     suspend fun insertItem(
+        id: Long? = null,
         name: String,
         imagePaths: String,
         location: String?,
@@ -104,13 +105,21 @@ class D1ApiService @Inject constructor() {
         createdAt: Long,
         updatedAt: Long
     ): Long {
-        val responseBody = executeQuery(
+        val sql = if (id != null) {
+            """INSERT INTO items (id, name, image_paths, location, purchase_date, purchase_price, usage_days, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        } else {
             """INSERT INTO items (name, image_paths, location, purchase_date, purchase_price, usage_days, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        }
+        val params = if (id != null) {
+            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
+        } else {
             listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
-        )
+        }
+        val responseBody = executeQuery(sql, params)
         val result = parseD1Result(responseBody)
-        return result?.meta?.last_row_id ?: 0
+        return id ?: result?.meta?.last_row_id ?: 0
     }
 
     suspend fun updateItem(
