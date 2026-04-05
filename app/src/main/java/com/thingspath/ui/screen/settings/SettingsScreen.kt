@@ -7,7 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +36,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
-    val isSyncing: Boolean = false,
+    val isRestoring: Boolean = false,
     val infoMessage: String? = null,
     val errorMessage: String? = null
 )
@@ -96,16 +96,16 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * 将本地 Room 数据同步到远端 D1 数据库。
+     * 从 D1 恢复数据到本地。
      */
-    fun syncToRemote() {
+    fun restoreFromRemote() {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(isSyncing = true, infoMessage = null, errorMessage = null)
-                itemRepository.syncLocalToRemote()
-                _uiState.value = _uiState.value.copy(isSyncing = false, infoMessage = "同步成功")
+                _uiState.value = _uiState.value.copy(isRestoring = true, infoMessage = null, errorMessage = null)
+                itemRepository.pullFromD1()
+                _uiState.value = _uiState.value.copy(isRestoring = false, infoMessage = "恢复成功")
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSyncing = false, errorMessage = e.message ?: "同步失败")
+                _uiState.value = _uiState.value.copy(isRestoring = false, errorMessage = e.message ?: "恢复失败")
             }
         }
     }
@@ -229,33 +229,33 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ========== 数据同步 ==========
+            // ========== 数据恢复 ==========
             Text(
-                text = "数据同步",
+                text = "数据恢复",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "将本地数据同步到云端 D1 数据库",
+                text = "从云端 D1 数据库恢复数据到本地",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
             )
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
-                onClick = { viewModel.syncToRemote() },
-                enabled = !uiState.isSyncing,
+                onClick = { viewModel.restoreFromRemote() },
+                enabled = !uiState.isRestoring,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.Default.CloudUpload,
+                    imageVector = Icons.Default.CloudDownload,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (uiState.isSyncing) "同步中..." else "同步到云端")
+                Text(if (uiState.isRestoring) "恢复中..." else "从云端恢复")
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -274,14 +274,14 @@ fun SettingsScreen(
             ) {
                 OutlinedButton(
                     onClick = { exportLauncher.launch("thingspath_backup.json") },
-                    enabled = !uiState.isExporting && !uiState.isImporting && !uiState.isSyncing,
+                    enabled = !uiState.isExporting && !uiState.isImporting && !uiState.isRestoring,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (uiState.isExporting) "导出中..." else "导出")
                 }
                 OutlinedButton(
                     onClick = { importLauncher.launch(arrayOf("application/json")) },
-                    enabled = !uiState.isExporting && !uiState.isImporting && !uiState.isSyncing,
+                    enabled = !uiState.isExporting && !uiState.isImporting && !uiState.isRestoring,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (uiState.isImporting) "导入中..." else "导入")
