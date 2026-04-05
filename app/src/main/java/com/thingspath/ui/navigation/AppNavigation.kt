@@ -5,7 +5,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.thingspath.ui.screen.additem.AddItemScreen
 import com.thingspath.ui.screen.home.HomeScreen
 import com.thingspath.ui.screen.itemdetail.ItemDetailScreen
 import com.thingspath.ui.screen.settings.SettingsScreen
@@ -43,15 +42,6 @@ fun AppNavigation(
         composable(route = Screen.Statistics.route) {
             StatisticsScreen(
                 onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(route = Screen.AddItem.route) {
-            AddItemScreen(
-                viewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-                onBack = {
-                    navController.popBackStack()
-                }
             )
         }
 
