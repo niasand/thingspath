@@ -332,11 +332,11 @@ fun MultiImageViewer(
                 .clip(MaterialTheme.shapes.medium)
                 .clickable { onImageClick(0) }
         ) {
-            AsyncImage(
+            RobustAsyncImage(
                 model = resolveImageModel(imagePaths[0]),
                 contentDescription = "Item image",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                placeholderName = itemName
             )
         }
         return
@@ -349,14 +349,14 @@ fun MultiImageViewer(
             state = pagerState,
             modifier = Modifier.fillMaxSize()
         ) { page ->
-            AsyncImage(
+            RobustAsyncImage(
                 model = resolveImageModel(imagePaths[page]),
                 contentDescription = "Item image ${page + 1}",
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(MaterialTheme.shapes.medium)
                     .clickable { onImageClick(page) },
-                contentScale = ContentScale.Crop
+                placeholderName = itemName
             )
         }
         // Dot indicator
@@ -668,7 +668,7 @@ fun FullScreenImageDialog(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                AsyncImage(
+                RobustAsyncImage(
                     model = resolveImageModel(imagePaths[page]),
                     contentDescription = "Full screen image ${page + 1}",
                     modifier = Modifier
@@ -723,6 +723,37 @@ fun FullScreenImageDialog(
  */
 private fun resolveImageModel(path: String): Any {
     return if (path.startsWith("http://") || path.startsWith("https://")) path else File(path)
+}
+
+/**
+ * 带错误回退的 AsyncImage：加载失败时显示文字占位符
+ */
+@Composable
+private fun RobustAsyncImage(
+    model: Any,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    placeholderName: String? = null
+) {
+    var loadFailed by remember(model) { mutableStateOf(false) }
+    if (!loadFailed) {
+        AsyncImage(
+            model = model,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = contentScale,
+            onError = { loadFailed = true }
+        )
+    }
+    if (loadFailed) {
+        ItemImagePlaceholder(
+            name = placeholderName,
+            modifier = modifier,
+            shape = MaterialTheme.shapes.medium,
+            maxLines = 2
+        )
+    }
 }
 
 @Composable
