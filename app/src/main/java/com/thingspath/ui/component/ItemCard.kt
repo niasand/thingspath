@@ -8,7 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import kotlin.random.Random
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,12 +102,26 @@ fun ItemCard(
                         thumbnailUrl.startsWith("http://") || thumbnailUrl.startsWith("https://") -> thumbnailUrl
                         else -> File(thumbnailUrl)
                     }
-                    AsyncImage(
-                        model = imageModel,
-                        contentDescription = "Item image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    var imageLoadFailed by remember(thumbnailUrl) { mutableStateOf(false) }
+                    if (!imageLoadFailed) {
+                        AsyncImage(
+                            model = imageModel,
+                            contentDescription = "Item image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            onError = { imageLoadFailed = true }
+                        )
+                    }
+                    if (imageLoadFailed) {
+                        ItemImagePlaceholder(
+                            name = item.name,
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(12.dp),
+                            maxLines = 2,
+                            backgroundColor = GrayLight,
+                            textColor = PurplePrimary
+                        )
+                    }
                 } else {
                     ItemImagePlaceholder(
                         name = item.name,
