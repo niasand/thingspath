@@ -7,6 +7,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.thingspath.data.local.datastore.SettingsRepository
 import com.thingspath.data.local.db.ItemDao
 import com.thingspath.data.local.db.ItemEntity
 import com.thingspath.data.local.db.toEntity
@@ -29,6 +30,7 @@ import javax.inject.Singleton
 class ItemRepository @Inject constructor(
     private val d1ApiService: D1ApiService,
     private val itemDao: ItemDao,
+    private val settingsRepository: SettingsRepository,
     private val application: Application,
     private val imageLoader: ImageLoader
 ) {
@@ -53,18 +55,21 @@ class ItemRepository @Inject constructor(
             }
         }
 
-        // 首次启动：Room 为空时从 D1 拉取数据
+        // 启动同步：Room 为空 → 全量 pull；否则 → 增量同步
         scope.launch {
             try {
                 d1ApiService.createTableIfNotExists()
                 val count = itemDao.itemCount()
                 if (count == 0) {
-                    Log.d(TAG, "Room is empty, pulling from D1...")
+                    Log.d(TAG, "Room is empty, doing full pull from D1...")
                     pullFromD1()
+                    // 全量 pull 后，设 watermark 到当前最大 updated_at
+                    val maxTs = itemDao.getMaxUpdatedAt()
+                    settingsRepository.setLastPullUpdatedAt(maxTs)
+                    settingsRepository.setLastPushUpdatedAt(maxTs)
                 } else {
-                    Log.d(TAG, "Room has $count items, skipping D1 pull")
-                    // 启动后仍然预取图片
-                    items.first().let { prefetchImages(it) }
+                    Log.d(TAG, "Room has $count items, doing incremental sync...")
+                    incrementalSync()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize", e)
@@ -72,9 +77,14 @@ class ItemRepository @Inject constructor(
         }
     }
 
-    // ========== 公开 API（接口与改造前一致）==========
+    // ========== 公开 API ==========
 
-    suspend fun refreshFromRemote() = pullFromD1()
+    /**
+     * 增量同步（下拉刷新使用）。
+     */
+    suspend fun refreshFromRemote() {
+        incrementalSync()
+    }
 
     fun getAllItems(): Flow<List<Item>> = items
 
@@ -225,11 +235,93 @@ class ItemRepository @Inject constructor(
         }
     }
 
-    // ========== 内部方法 ==========
+    // ========== 增量同步 ==========
+
+    /**
+     * 双向增量同步：先 pull（D1→Room），再 push（Room→D1）。
+     * pull 优先确保 D1 数据覆盖本地冲突。
+     */
+    private suspend fun incrementalSync() {
+        incrementalPull()
+        incrementalPush()
+    }
+
+    private suspend fun incrementalPull() {
+        val lastPullTs = settingsRepository.lastPullUpdatedAt.first()
+        val rows = d1ApiService.getItemsUpdatedAfter(lastPullTs)
+
+        if (rows.isEmpty()) {
+            Log.d(TAG, "Incremental pull: no new items from D1 since $lastPullTs")
+            return
+        }
+
+        var maxUpdatedAt = lastPullTs
+        val entities = rows.map { row ->
+            val updatedAt = (row["updated_at"] as? Number)?.toLong() ?: 0L
+            if (updatedAt > maxUpdatedAt) maxUpdatedAt = updatedAt
+
+            ItemEntity(
+                id = (row["id"] as? Number)?.toLong() ?: 0,
+                name = row["name"] as? String ?: "",
+                imagePaths = row["image_paths"] as? String ?: "[]",
+                imagePath = parseJsonField(row["image_paths"]).firstOrNull(),
+                location = row["location"] as? String,
+                purchaseDate = (row["purchase_date"] as? Number)?.toLong(),
+                purchasePrice = (row["purchase_price"] as? Number)?.toDouble() ?: 0.0,
+                usageDays = (row["usage_days"] as? Number)?.toInt(),
+                note = row["note"] as? String,
+                tags = row["tags"] as? String ?: "[]",
+                createdAt = (row["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                updatedAt = updatedAt
+            )
+        }
+
+        itemDao.insertItems(entities)
+        settingsRepository.setLastPullUpdatedAt(maxUpdatedAt)
+        Log.d(TAG, "Incremental pull: fetched ${entities.size} items, watermark = $maxUpdatedAt")
+    }
+
+    private suspend fun incrementalPush() {
+        val lastPushTs = settingsRepository.lastPushUpdatedAt.first()
+        val localChanges = itemDao.getItemsUpdatedAfter(lastPushTs)
+
+        if (localChanges.isEmpty()) {
+            Log.d(TAG, "Incremental push: no local changes since $lastPushTs")
+            return
+        }
+
+        var maxUpdatedAt = lastPushTs
+        for (entity in localChanges) {
+            try {
+                d1ApiService.upsertItem(
+                    id = entity.id,
+                    name = entity.name,
+                    imagePaths = entity.imagePaths,
+                    location = entity.location,
+                    purchaseDate = entity.purchaseDate,
+                    purchasePrice = entity.purchasePrice,
+                    usageDays = entity.usageDays,
+                    note = entity.note,
+                    tags = entity.tags,
+                    createdAt = entity.createdAt,
+                    updatedAt = entity.updatedAt
+                )
+                if (entity.updatedAt > maxUpdatedAt) maxUpdatedAt = entity.updatedAt
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to push item ${entity.id} to D1, will retry next sync", e)
+                // 不推进 watermark，下次同步重试
+            }
+        }
+
+        settingsRepository.setLastPushUpdatedAt(maxUpdatedAt)
+        Log.d(TAG, "Incremental push: sent ${localChanges.size} items, watermark = $maxUpdatedAt")
+    }
+
+    // ========== 全量拉取（手动恢复） ==========
 
     /**
      * 从 D1 拉取全部数据写入 Room（INSERT OR REPLACE）。
-     * 供设置页手动恢复和首次启动自动恢复使用。
+     * 供设置页手动恢复和首次启动使用。完成后重置 watermark。
      */
     suspend fun pullFromD1() {
         try {
@@ -252,10 +344,17 @@ class ItemRepository @Inject constructor(
             }
             itemDao.insertItems(entities)
             Log.d(TAG, "Pulled ${entities.size} items from D1 to Room")
+
+            // 全量拉取后重置 watermark，让增量同步从当前点继续
+            val maxTs = itemDao.getMaxUpdatedAt()
+            settingsRepository.setLastPullUpdatedAt(maxTs)
+            settingsRepository.setLastPushUpdatedAt(maxTs)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to pull from D1", e)
         }
     }
+
+    // ========== 内部工具方法 ==========
 
     private fun prefetchImages(items: List<Item>) {
         val urls = items

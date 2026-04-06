@@ -52,4 +52,10 @@ interface ItemDao {
 
     @Query("SELECT COUNT(*) FROM items")
     suspend fun itemCount(): Int
+
+    @Query("SELECT * FROM items WHERE updated_at > :since ORDER BY updated_at ASC")
+    suspend fun getItemsUpdatedAfter(since: Long): List<ItemEntity>
+
+    @Query("SELECT COALESCE(MAX(updated_at), 0) FROM items")
+    suspend fun getMaxUpdatedAt(): Long
 }
