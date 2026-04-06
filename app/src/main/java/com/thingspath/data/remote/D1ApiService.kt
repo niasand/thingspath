@@ -78,6 +78,41 @@ class D1ApiService @Inject constructor() {
         return parseResults(responseBody)
     }
 
+    suspend fun getItemsUpdatedAfter(since: Long): List<Map<String, Any?>> {
+        val responseBody = executeQuery(
+            "SELECT * FROM items WHERE updated_at > ? ORDER BY updated_at ASC",
+            listOf(since)
+        )
+        return parseResults(responseBody)
+    }
+
+    suspend fun getMaxUpdatedAt(): Long {
+        val responseBody = executeQuery("SELECT COALESCE(MAX(updated_at), 0) as max_ts FROM items")
+        val results = parseResults(responseBody)
+        return (results.firstOrNull()?.get("max_ts") as? Number)?.toLong() ?: 0L
+    }
+
+    suspend fun upsertItem(
+        id: Long,
+        name: String,
+        imagePaths: String,
+        location: String?,
+        purchaseDate: Long?,
+        purchasePrice: Double,
+        usageDays: Int?,
+        note: String?,
+        tags: String,
+        createdAt: Long,
+        updatedAt: Long
+    ) {
+        executeQuery(
+            """INSERT OR REPLACE INTO items (id, name, image_paths, location, purchase_date,
+               purchase_price, usage_days, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
+        )
+    }
+
     suspend fun getItemById(itemId: Long): List<Map<String, Any?>> {
         val responseBody = executeQuery("SELECT * FROM items WHERE id = ?", listOf(itemId))
         return parseResults(responseBody)
