@@ -3,46 +3,29 @@ package com.thingspath.ui.screen.itemdetail
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import coil.compose.AsyncImage
 import com.thingspath.ui.component.DeleteConfirmationDialog
-import com.thingspath.ui.component.ItemImagePlaceholder
 import com.thingspath.ui.component.MultiImageEditor
-import android.app.DatePickerDialog
-import android.widget.DatePicker
-import java.text.SimpleDateFormat
-import java.util.*
-import androidx.core.content.FileProvider
-import androidx.core.content.ContextCompat
 import java.io.File
 import android.Manifest
 import android.content.pm.PackageManager
 import android.content.Intent
+import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,9 +37,8 @@ fun ItemDetailScreen(
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior() // Use pinned scroll behavior
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    // Gallery picker launcher (multiple selection)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -75,7 +57,7 @@ fun ItemDetailScreen(
             }
         }
     }
-    
+
     val onAddFromGallery = {
         val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
             type = "image/*"
@@ -85,7 +67,6 @@ fun ItemDetailScreen(
         imagePickerLauncher.launch(Intent.createChooser(intent, "选择图片"))
     }
 
-    // Camera capture launcher
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -95,7 +76,6 @@ fun ItemDetailScreen(
         }
     }
 
-    // Camera permission launcher
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -138,7 +118,7 @@ fun ItemDetailScreen(
                             IconButton(onClick = {
                                 viewModel.saveItem(
                                     onSuccess = onBack,
-                                    onError = { /* Show error */ }
+                                    onError = { }
                                 )
                             }) {
                                 Icon(
@@ -162,7 +142,7 @@ fun ItemDetailScreen(
                         }
                     }
                 },
-                scrollBehavior = scrollBehavior // Set scroll behavior to keep it pinned/visible
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
@@ -183,7 +163,7 @@ fun ItemDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Item not found",
+                    text = "未找到物品",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -211,7 +191,6 @@ fun ItemDetailScreen(
             )
         }
 
-        // Full Screen Image Dialog
         if (state.isImageFullScreen && state.imagePaths.isNotEmpty()) {
             FullScreenImageDialog(
                 imagePaths = state.imagePaths,
@@ -220,7 +199,6 @@ fun ItemDetailScreen(
             )
         }
 
-        // Delete Confirmation Dialog
         if (state.showDeleteDialog) {
             DeleteConfirmationDialog(
                 onConfirm = {
@@ -257,7 +235,6 @@ fun ItemDetailContent(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Image Section
         if (state.isEditing) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
@@ -303,480 +280,4 @@ fun ItemDetailContent(
             ViewModeContent(item = state.item)
         }
     }
-}
-
-/**
- * View-mode image display: single image or swipeable pager for multiple images.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun MultiImageViewer(
-    imagePaths: List<String>,
-    itemName: String?,
-    onImageClick: (index: Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (imagePaths.isEmpty()) {
-        ItemImagePlaceholder(
-            name = itemName,
-            modifier = modifier.clip(MaterialTheme.shapes.medium),
-            shape = MaterialTheme.shapes.medium,
-            maxLines = 2
-        )
-        return
-    }
-
-    if (imagePaths.size == 1) {
-        Box(
-            modifier = modifier
-                .clip(MaterialTheme.shapes.medium)
-                .clickable { onImageClick(0) }
-        ) {
-            RobustAsyncImage(
-                model = resolveImageModel(imagePaths[0]),
-                contentDescription = "物品图片",
-                modifier = Modifier.fillMaxSize(),
-                placeholderName = itemName
-            )
-        }
-        return
-    }
-
-    // Multiple images: pager with dot indicator
-    val pagerState = rememberPagerState(pageCount = { imagePaths.size })
-    Box(modifier = modifier) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            RobustAsyncImage(
-                model = resolveImageModel(imagePaths[page]),
-                contentDescription = "物品图片 ${page + 1}",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(MaterialTheme.shapes.medium)
-                    .clickable { onImageClick(page) },
-                placeholderName = itemName
-            )
-        }
-        // Dot indicator
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            repeat(imagePaths.size) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(if (pagerState.currentPage == index) 8.dp else 6.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (pagerState.currentPage == index)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.outline
-                        )
-                )
-            }
-        }
-        // Image counter (top-right)
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(8.dp),
-            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
-            shape = MaterialTheme.shapes.small
-        ) {
-            Text(
-                text = "${pagerState.currentPage + 1}/${imagePaths.size}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun EditModeContent(
-    state: ItemDetailState,
-    onNameChange: (String) -> Unit,
-    onLocationChange: (String) -> Unit,
-    onPurchaseDateChange: (String) -> Unit,
-    onPurchasePriceChange: (String) -> Unit,
-    onUsageDaysChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
-    onTagInputChange: (String) -> Unit,
-    onAddTag: () -> Unit,
-    onRemoveTag: (String) -> Unit
-) {
-    val context = LocalContext.current
-    val calendar = Calendar.getInstance()
-
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-            // Month is 0-indexed
-            val selectedDate = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
-            onPurchaseDateChange(selectedDate)
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
-
-    OutlinedTextField(
-        value = state.name,
-        onValueChange = onNameChange,
-        label = { Text("名称 *") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        isError = state.name.trim().isEmpty()
-    )
-
-    OutlinedTextField(
-        value = state.location,
-        onValueChange = onLocationChange,
-        label = { Text("位置") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
-
-    Box(modifier = Modifier.clickable { datePickerDialog.show() }) {
-        OutlinedTextField(
-            value = state.purchaseDate,
-            onValueChange = {}, // Read-only via picker
-            label = { Text("购买日期 (YYYY-MM-DD)") },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = false,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            singleLine = true,
-            placeholder = { Text("例如 2024-01-15") },
-            trailingIcon = {
-                Icon(Icons.Default.DateRange, contentDescription = "选择日期")
-            }
-        )
-    }
-
-    OutlinedTextField(
-        value = state.purchasePrice,
-        onValueChange = onPurchasePriceChange,
-        label = { Text("价格") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-        placeholder = { Text("0.00") }
-    )
-
-    OutlinedTextField(
-        value = state.usageDays,
-        onValueChange = onUsageDaysChange,
-        label = { Text("使用天数") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        placeholder = { Text("例如 30") }
-    )
-
-    OutlinedTextField(
-        value = state.note,
-        onValueChange = onNoteChange,
-        label = { Text("备注") },
-        modifier = Modifier.fillMaxWidth(),
-        maxLines = 5,
-        placeholder = { Text("添加备注...") }
-    )
-
-    // Tags Section
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "标签",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = state.tagInput,
-                onValueChange = onTagInputChange,
-                label = { Text("添加标签") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onAddTag() })
-            )
-            IconButton(onClick = onAddTag) {
-                Icon(Icons.Default.Add, contentDescription = "添加标签")
-            }
-        }
-
-        if (state.tags.isNotEmpty()) {
-            @OptIn(ExperimentalLayoutApi::class)
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                state.tags.forEach { tag ->
-                    InputChip(
-                        selected = false,
-                        onClick = { },
-                        label = { Text(tag) },
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "移除标签",
-                                modifier = Modifier.size(16.dp).clickable { onRemoveTag(tag) }
-                            )
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ViewModeContent(item: com.thingspath.data.model.Item?) {
-    item ?: return
-    val usageDays = remember(item.purchaseDate) {
-        item.purchaseDate?.let { calculateUsageDaysFromPurchaseDate(it) }
-    } ?: item.usageDays
-    DetailField(
-        label = "名称",
-        value = item.name
-    )
-
-    item.location?.let {
-        DetailField(label = "位置", value = it)
-    }
-
-    item.purchaseDate?.let {
-        DetailField(
-            label = "购买日期",
-            value = formatDate(it)
-        )
-    }
-
-    if (item.purchasePrice > 0) {
-        DetailField(
-            label = "价格",
-            value = String.format("%.2f", item.purchasePrice)
-        )
-    }
-
-    usageDays?.let { days ->
-        DetailField(
-            label = "使用天数",
-            value = "$days 天"
-        )
-
-        if (item.purchasePrice > 0 && days > 0) {
-            val dailyCost = item.purchasePrice / days
-            DetailField(
-                label = "每日成本",
-                value = String.format("%.2f / 天", dailyCost)
-            )
-        }
-    }
-
-    if (!item.note.isNullOrBlank()) {
-        DetailField(
-            label = "备注",
-            value = item.note
-        )
-    }
-
-    if (item.tags.isNotEmpty()) {
-        Column {
-            Text(
-                text = "标签",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            @OptIn(ExperimentalLayoutApi::class)
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item.tags.forEach { tag ->
-                    SuggestionChip(
-                        onClick = { },
-                        label = { Text(tag) }
-                    )
-                }
-            }
-        }
-    }
-
-    DetailField(
-        label = "添加日期",
-        value = formatDate(item.createdAt)
-    )
-}
-
-private fun calculateUsageDaysFromPurchaseDate(purchaseDateMillis: Long): Int? {
-    val cal = Calendar.getInstance()
-    cal.set(Calendar.HOUR_OF_DAY, 0)
-    cal.set(Calendar.MINUTE, 0)
-    cal.set(Calendar.SECOND, 0)
-    cal.set(Calendar.MILLISECOND, 0)
-    val todayStart = cal.timeInMillis
-    val diff = todayStart - purchaseDateMillis
-    val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
-    return if (days >= 0) days.toInt() else null
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun FullScreenImageDialog(
-    imagePaths: List<String>,
-    initialIndex: Int = 0,
-    onDismiss: () -> Unit
-) {
-    val pagerState = rememberPagerState(
-        initialPage = initialIndex.coerceIn(0, (imagePaths.size - 1).coerceAtLeast(0)),
-        pageCount = { imagePaths.size }
-    )
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.Center
-        ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
-                RobustAsyncImage(
-                    model = resolveImageModel(imagePaths[page]),
-                    contentDescription = "全屏图片 ${page + 1}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
-            // Counter overlay (top-right)
-            if (imagePaths.size > 1) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = "${pagerState.currentPage + 1} / ${imagePaths.size}",
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-                // Dot indicator (bottom)
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    repeat(imagePaths.size) { index ->
-                        Box(
-                            modifier = Modifier
-                                .size(if (pagerState.currentPage == index) 10.dp else 7.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (pagerState.currentPage == index)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.outline
-                                )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * 将图片路径转为 Coil 可识别的 model：URL 直接使用，本地路径包装为 File
- */
-private fun resolveImageModel(path: String): Any {
-    return if (path.startsWith("http://") || path.startsWith("https://")) path else File(path)
-}
-
-/**
- * 带错误回退的 AsyncImage：加载失败时显示文字占位符
- */
-@Composable
-private fun RobustAsyncImage(
-    model: Any,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Crop,
-    placeholderName: String? = null
-) {
-    var loadFailed by remember(model) { mutableStateOf(false) }
-    if (!loadFailed) {
-        AsyncImage(
-            model = model,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            contentScale = contentScale,
-            onError = { loadFailed = true }
-        )
-    }
-    if (loadFailed) {
-        ItemImagePlaceholder(
-            name = placeholderName,
-            modifier = modifier,
-            shape = MaterialTheme.shapes.medium,
-            maxLines = 2
-        )
-    }
-}
-
-@Composable
-fun DetailField(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.secondary
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-private fun formatDate(timestamp: Long): String {
-    val date = Date(timestamp)
-    val format = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
-    return format.format(date)
 }
