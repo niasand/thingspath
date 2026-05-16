@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -73,7 +72,7 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isExporting = true, infoMessage = null, errorMessage = null)
                 val jsonString = exportItemsUseCase()
                 context.contentResolver.openOutputStream(uri)?.use { it.write(jsonString.toByteArray()) }
-                    ?: throw Exception("Failed to open output stream")
+                    ?: throw Exception("无法打开输出流")
                 _uiState.value = _uiState.value.copy(isExporting = false, infoMessage = "导出成功")
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isExporting = false, errorMessage = e.message ?: "导出失败")
@@ -86,7 +85,7 @@ class SettingsViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isImporting = true, infoMessage = null, errorMessage = null)
                 val jsonString = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
-                    ?: throw Exception("Failed to read input stream")
+                    ?: throw Exception("无法读取输入流")
                 importItemsUseCase(jsonString)
                 _uiState.value = _uiState.value.copy(isImporting = false, infoMessage = "导入成功")
             } catch (e: Exception) {
@@ -95,9 +94,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 从 D1 恢复数据到本地。
-     */
     fun restoreFromRemote() {
         viewModelScope.launch {
             try {
@@ -124,12 +120,10 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarIsError by remember { mutableStateOf(false) }
 
-    // Snackbar: 同步/导入/导出成功失败时自动弹出，1秒后消失
     LaunchedEffect(uiState.infoMessage, uiState.errorMessage) {
         val msg = uiState.infoMessage ?: uiState.errorMessage
         if (msg != null) {
             snackbarIsError = uiState.errorMessage != null
-            // 并行协程：1秒后主动关闭 snackbar
             launch { delay(300); snackbarHostState.currentSnackbarData?.dismiss() }
             snackbarHostState.showSnackbar(
                 message = msg,
@@ -154,10 +148,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("设置") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -165,14 +159,14 @@ fun SettingsScreen(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
                 val containerColor = if (!snackbarIsError) {
-                    Color(0xFFDBEAFE) // 成功：淡蓝色（不透明）
+                    MaterialTheme.colorScheme.primaryContainer
                 } else {
-                    SnackbarDefaults.color
+                    MaterialTheme.colorScheme.errorContainer
                 }
-                val contentColor = if (snackbarIsError) {
-                    Color(0xFFE53935) // 失败：红色文字
+                val contentColor = if (!snackbarIsError) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
-                    Color.Black // 成功：黑色文字
+                    MaterialTheme.colorScheme.onErrorContainer
                 }
                 Snackbar(
                     snackbarData = data,
@@ -190,7 +184,7 @@ fun SettingsScreen(
                 .fillMaxSize()
         ) {
             Text(
-                text = "AI Configuration",
+                text = "AI 配置",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -208,7 +202,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "The API Key is stored locally on your device.",
+                text = "API Key 仅存储在本设备上",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -224,12 +218,11 @@ fun SettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save")
+                Text("保存")
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ========== 数据恢复 ==========
             Text(
                 text = "数据恢复",
                 style = MaterialTheme.typography.titleMedium,
@@ -260,7 +253,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ========== 数据导入/导出 ==========
             Text(
                 text = "数据导入/导出",
                 style = MaterialTheme.typography.titleMedium,

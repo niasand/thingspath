@@ -3,7 +3,6 @@ package com.thingspath.ui.component
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.Dialog
 
 @Composable
 fun DeleteConfirmationDialog(
@@ -14,19 +13,19 @@ fun DeleteConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "Confirm Delete")
+            Text(text = "确认删除")
         },
         text = {
-            Text(text = "Are you sure you want to delete this item?")
+            Text(text = "确定要删除吗？此操作不可撤销。")
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(text = "Delete")
+                Text(text = "删除")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel")
+                Text(text = "取消")
             }
         },
         modifier = modifier

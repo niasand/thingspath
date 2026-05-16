@@ -82,7 +82,7 @@ fun ItemDetailScreen(
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
             addCategory(Intent.CATEGORY_OPENABLE)
         }
-        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Images"))
+        imagePickerLauncher.launch(Intent.createChooser(intent, "选择图片"))
     }
 
     // Camera capture launcher
@@ -123,12 +123,12 @@ fun ItemDetailScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Item Details") },
+                title = { Text("物品详情") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "返回"
                         )
                     }
                 },
@@ -143,20 +143,20 @@ fun ItemDetailScreen(
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Save,
-                                    contentDescription = "Save"
+                                    contentDescription = "保存"
                                 )
                             }
                         } else {
                             IconButton(onClick = { viewModel.toggleEditMode() }) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit"
+                                    contentDescription = "编辑"
                                 )
                             }
                             IconButton(onClick = { viewModel.showDeleteDialog() }) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete"
+                                    contentDescription = "删除"
                                 )
                             }
                         }
@@ -261,7 +261,7 @@ fun ItemDetailContent(
         if (state.isEditing) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Photos",
+                    text = "照片",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -334,7 +334,7 @@ fun MultiImageViewer(
         ) {
             RobustAsyncImage(
                 model = resolveImageModel(imagePaths[0]),
-                contentDescription = "Item image",
+                contentDescription = "物品图片",
                 modifier = Modifier.fillMaxSize(),
                 placeholderName = itemName
             )
@@ -351,7 +351,7 @@ fun MultiImageViewer(
         ) { page ->
             RobustAsyncImage(
                 model = resolveImageModel(imagePaths[page]),
-                contentDescription = "Item image ${page + 1}",
+                contentDescription = "物品图片 ${page + 1}",
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(MaterialTheme.shapes.medium)
@@ -429,7 +429,7 @@ fun EditModeContent(
     OutlinedTextField(
         value = state.name,
         onValueChange = onNameChange,
-        label = { Text("Name *") },
+        label = { Text("名称 *") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         isError = state.name.trim().isEmpty()
@@ -438,7 +438,7 @@ fun EditModeContent(
     OutlinedTextField(
         value = state.location,
         onValueChange = onLocationChange,
-        label = { Text("Location") },
+        label = { Text("位置") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -447,7 +447,7 @@ fun EditModeContent(
         OutlinedTextField(
             value = state.purchaseDate,
             onValueChange = {}, // Read-only via picker
-            label = { Text("Purchase Date (YYYY-MM-DD)") },
+            label = { Text("购买日期 (YYYY-MM-DD)") },
             modifier = Modifier.fillMaxWidth(),
             enabled = false,
             colors = OutlinedTextFieldDefaults.colors(
@@ -458,9 +458,9 @@ fun EditModeContent(
                 disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             singleLine = true,
-            placeholder = { Text("e.g., 2024-01-15") },
+            placeholder = { Text("例如 2024-01-15") },
             trailingIcon = {
-                Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                Icon(Icons.Default.DateRange, contentDescription = "选择日期")
             }
         )
     }
@@ -468,7 +468,7 @@ fun EditModeContent(
     OutlinedTextField(
         value = state.purchasePrice,
         onValueChange = onPurchasePriceChange,
-        label = { Text("Price") },
+        label = { Text("价格") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
@@ -478,25 +478,25 @@ fun EditModeContent(
     OutlinedTextField(
         value = state.usageDays,
         onValueChange = onUsageDaysChange,
-        label = { Text("Usage Days") },
+        label = { Text("使用天数") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        placeholder = { Text("e.g., 30") }
+        placeholder = { Text("例如 30") }
     )
 
     OutlinedTextField(
         value = state.note,
         onValueChange = onNoteChange,
-        label = { Text("Note") },
+        label = { Text("备注") },
         modifier = Modifier.fillMaxWidth(),
         maxLines = 5,
-        placeholder = { Text("Add any notes here...") }
+        placeholder = { Text("添加备注...") }
     )
 
     // Tags Section
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Tags",
+            text = "标签",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -509,14 +509,14 @@ fun EditModeContent(
             OutlinedTextField(
                 value = state.tagInput,
                 onValueChange = onTagInputChange,
-                label = { Text("Add Tag") },
+                label = { Text("添加标签") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onAddTag() })
             )
             IconButton(onClick = onAddTag) {
-                Icon(Icons.Default.Add, contentDescription = "Add Tag")
+                Icon(Icons.Default.Add, contentDescription = "添加标签")
             }
         }
 
@@ -535,7 +535,7 @@ fun EditModeContent(
                         trailingIcon = {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Remove Tag",
+                                contentDescription = "移除标签",
                                 modifier = Modifier.size(16.dp).clickable { onRemoveTag(tag) }
                             )
                         }
@@ -553,46 +553,46 @@ fun ViewModeContent(item: com.thingspath.data.model.Item?) {
         item.purchaseDate?.let { calculateUsageDaysFromPurchaseDate(it) }
     } ?: item.usageDays
     DetailField(
-        label = "Name",
+        label = "名称",
         value = item.name
     )
 
     item.location?.let {
-        DetailField(label = "Location", value = it)
+        DetailField(label = "位置", value = it)
     }
 
     item.purchaseDate?.let {
         DetailField(
-            label = "Purchase Date",
+            label = "购买日期",
             value = formatDate(it)
         )
     }
 
     if (item.purchasePrice > 0) {
         DetailField(
-            label = "Price",
+            label = "价格",
             value = String.format("%.2f", item.purchasePrice)
         )
     }
 
     usageDays?.let { days ->
         DetailField(
-            label = "Usage Days",
-            value = "$days days"
+            label = "使用天数",
+            value = "$days 天"
         )
-        
+
         if (item.purchasePrice > 0 && days > 0) {
             val dailyCost = item.purchasePrice / days
             DetailField(
-                label = "Daily Cost",
-                value = String.format("%.2f / day", dailyCost)
+                label = "每日成本",
+                value = String.format("%.2f / 天", dailyCost)
             )
         }
     }
 
     if (!item.note.isNullOrBlank()) {
         DetailField(
-            label = "Note",
+            label = "备注",
             value = item.note
         )
     }
@@ -600,7 +600,7 @@ fun ViewModeContent(item: com.thingspath.data.model.Item?) {
     if (item.tags.isNotEmpty()) {
         Column {
             Text(
-                text = "Tags",
+                text = "标签",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -622,7 +622,7 @@ fun ViewModeContent(item: com.thingspath.data.model.Item?) {
     }
 
     DetailField(
-        label = "Added Date",
+        label = "添加日期",
         value = formatDate(item.createdAt)
     )
 }
@@ -670,7 +670,7 @@ fun FullScreenImageDialog(
             ) { page ->
                 RobustAsyncImage(
                     model = resolveImageModel(imagePaths[page]),
-                    contentDescription = "Full screen image ${page + 1}",
+                    contentDescription = "全屏图片 ${page + 1}",
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),

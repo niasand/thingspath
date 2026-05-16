@@ -105,7 +105,7 @@ dependencies {
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
 
-    // Accompanist SwipeRefresh (Material3 1.2.x lacks built-in PullToRefreshBox)
+    // Accompanist SwipeRefresh (deprecated, migrate to M3 PullToRefreshBox when available)
     implementation("com.google.accompanist:accompanist-swiperefresh:0.34.0")
 
     // Coroutines

@@ -29,10 +29,10 @@ fun StatisticsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Statistics") },
+                title = { Text("统计") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -58,32 +58,32 @@ fun StatisticsScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Total Items", style = MaterialTheme.typography.labelMedium)
+                        Text("物品总数", style = MaterialTheme.typography.labelMedium)
                         Text("${state.totalItems}", style = MaterialTheme.typography.headlineSmall)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Total Value", style = MaterialTheme.typography.labelMedium)
+                        Text("总价值", style = MaterialTheme.typography.labelMedium)
                         Text(String.format("%.2f", state.totalPrice), style = MaterialTheme.typography.headlineSmall)
                     }
                 }
             }
 
             // Tag Distribution Chart
-            ChartCard(title = "Top Tags") {
+            ChartCard(title = "热门标签") {
                 CompactPieChart(
                     data = state.tagDistribution.map { Triple(it.percentage, it.color, "${it.tag} (${it.count})") }
                 )
             }
 
             // Price Distribution Chart
-            ChartCard(title = "Price Range") {
+            ChartCard(title = "价格区间") {
                 CompactPieChart(
                     data = state.priceDistribution.map { Triple(it.percentage, it.color, "${it.range} (${it.count})") }
                 )
             }
 
             // Location Distribution Chart
-            ChartCard(title = "Location Distribution") {
+            ChartCard(title = "位置分布") {
                 CompactPieChart(
                     data = state.locationDistribution.map { Triple(it.percentage, it.color, "${it.location} (${it.count})") }
                 )

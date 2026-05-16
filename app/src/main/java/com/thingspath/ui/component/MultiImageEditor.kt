@@ -69,7 +69,7 @@ fun MultiImageEditor(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "添加图片",
+                    text = "选择图片来源",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -129,7 +129,7 @@ private fun ImageThumbnailCell(
         }
         AsyncImage(
             model = imageModel,
-            contentDescription = "Item image",
+            contentDescription = "物品图片",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -145,7 +145,7 @@ private fun ImageThumbnailCell(
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Delete image",
+                contentDescription = "删除图片",
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(14.dp)
             )
@@ -173,12 +173,12 @@ private fun AddImageCell(onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Add image",
+                contentDescription = "添加图片",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(32.dp)
             )
             Text(
-                text = "Add",
+                text = "添加",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

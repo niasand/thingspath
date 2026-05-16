@@ -36,8 +36,6 @@ data class HomeState(
     // Batch Actions
     val isSelectionMode: Boolean = false,
     val selectedItemIds: Set<Long> = emptySet(),
-    // Statistics
-    val showStatistics: Boolean = false,
     // List Control
     val scrollToTopSignal: Long = 0L, // Increment to trigger scroll to top
     // Infinite Scroll

@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.thingspath.data.model.Item
 import com.thingspath.ui.component.*
@@ -40,6 +39,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
+import com.thingspath.ui.theme.customColors
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
@@ -57,11 +57,11 @@ fun HomeScreen(
     var showSortMenu by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
+    val colors = MaterialTheme.customColors
 
     // Scroll to top when signal changes
     LaunchedEffect(state.scrollToTopSignal) {
         if (state.scrollToTopSignal > 0) {
-            // Add a small delay to ensure the list has been updated before scrolling
             kotlinx.coroutines.delay(100)
             listState.scrollToItem(0)
         }
@@ -77,18 +77,18 @@ fun HomeScreen(
         topBar = {
             if (state.isSelectionMode) {
                 TopAppBar(
-                    title = { Text("${state.selectedItemIds.size} Selected") },
+                    title = { Text("已选择 ${state.selectedItemIds.size} 项") },
                     navigationIcon = {
                         IconButton(onClick = { viewModel.toggleSelectionMode() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Close Selection Mode")
+                            Icon(Icons.Default.Close, contentDescription = "关闭选择模式")
                         }
                     },
                     actions = {
                         IconButton(onClick = { viewModel.selectAll() }) {
-                            Icon(Icons.Default.Check, contentDescription = "Select All")
+                            Icon(Icons.Default.Check, contentDescription = "全选")
                         }
-                        IconButton(onClick = { viewModel.showDeleteDialog(Item(id = 0, name = "", purchasePrice = 0.0)) /* Dummy item to trigger dialog, logic handled in VM */ }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Selected")
+                        IconButton(onClick = { viewModel.showDeleteDialog(Item(id = 0, name = "", purchasePrice = 0.0)) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "删除选中")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -103,14 +103,14 @@ fun HomeScreen(
                     },
                     actions = {
                     IconButton(onClick = { showSortMenu = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Sort")
+                        Icon(Icons.Default.FilterList, contentDescription = "排序")
                     }
                     DropdownMenu(
                         expanded = showSortMenu,
                         onDismissRequest = { showSortMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Purchase Date") },
+                            text = { Text("购买日期") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.PurchaseDate) {
                                     Icon(
@@ -125,7 +125,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Item Name") },
+                            text = { Text("物品名称") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.Name) {
                                     Icon(
@@ -140,7 +140,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Usage Days") },
+                            text = { Text("使用天数") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.UsageDays) {
                                     Icon(
@@ -155,7 +155,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Updated At") },
+                            text = { Text("更新时间") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.UpdatedAt) {
                                     Icon(
@@ -170,7 +170,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Add Date") },
+                            text = { Text("添加时间") },
                             trailingIcon = {
                                 if (state.sortField == HomeSortField.CreatedAt) {
                                     Icon(
@@ -186,7 +186,7 @@ fun HomeScreen(
                         )
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = "设置")
                     }
                 }
             )
@@ -197,7 +197,7 @@ fun HomeScreen(
                 Snackbar(
                     action = {
                         TextButton(onClick = { viewModel.dismissMessage() }) {
-                            Text("Dismiss")
+                            Text("关闭")
                         }
                     },
                     modifier = Modifier.padding(16.dp)
@@ -205,9 +205,9 @@ fun HomeScreen(
                     Text(
                         when {
                             state.infoMessage != null -> state.infoMessage!!
-                            state.exportSuccess -> "Export successful"
-                            state.importSuccess -> "Import successful"
-                            else -> state.errorMessage ?: "Unknown error"
+                            state.exportSuccess -> "导出成功"
+                            state.importSuccess -> "导入成功"
+                            else -> state.errorMessage ?: "未知错误"
                         }
                     )
                 }
@@ -216,17 +216,17 @@ fun HomeScreen(
         floatingActionButton = {
             SmallFloatingActionButton(
                 onClick = { showAIDialog = true },
-                containerColor = Color(0xFFE3F2FD),
-                contentColor = MaterialTheme.colorScheme.onSurface
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "AI Smart Add"
+                    contentDescription = "AI 智能添加"
                 )
             }
         },
         modifier = modifier,
-        containerColor = Color(0xFFE3F2FD) // Light blue background
+        containerColor = colors.homeBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -340,10 +340,10 @@ fun AIInputDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
-        title = { Text("AI Smart Add") },
+        title = { Text("AI 智能添加") },
         text = {
             Column {
-                Text("Paste or type item details here. The AI will extract name, price, date, and more.")
+                Text("粘贴或输入物品信息，AI 将自动提取名称、价格、日期等。")
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = text,
@@ -351,13 +351,13 @@ fun AIInputDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp),
-                    placeholder = { Text("e.g., Bought a new MacBook Pro for $2000 yesterday at Apple Store.") },
+                    placeholder = { Text("例如：昨天在苹果店花 14999 买了台 MacBook Pro") },
                     enabled = !isProcessing
                 )
                 if (isProcessing) {
                     Spacer(modifier = Modifier.height(16.dp))
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Text("AI is thinking...", style = MaterialTheme.typography.bodySmall)
+                    Text("AI 分析中...", style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -366,7 +366,7 @@ fun AIInputDialog(
                 onClick = { onSubmit(text) },
                 enabled = text.isNotBlank() && !isProcessing
             ) {
-                Text("Analyze")
+                Text("分析")
             }
         },
         dismissButton = {
@@ -374,7 +374,7 @@ fun AIInputDialog(
                 onClick = onDismiss,
                 enabled = !isProcessing
             ) {
-                Text("Cancel")
+                Text("取消")
             }
         }
     )
@@ -401,7 +401,7 @@ fun StatisticsHeader(
         ) {
             Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                 Text(
-                    text = "Total Items",
+                    text = "物品总数",
                     style = MaterialTheme.typography.labelMedium
                 )
                 Text(
@@ -416,7 +416,7 @@ fun StatisticsHeader(
 
             Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                 Text(
-                    text = "Total Value",
+                    text = "总价值",
                     style = MaterialTheme.typography.labelMedium
                 )
                 Text(
@@ -431,7 +431,7 @@ fun StatisticsHeader(
 
             Icon(
                 imageVector = Icons.Default.Analytics,
-                contentDescription = "View Statistics",
+                contentDescription = "查看统计",
                 tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
             )
         }
@@ -448,7 +448,7 @@ fun SearchBar(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier,
-        placeholder = { Text("Search items...") },
+        placeholder = { Text("搜索物品...") },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -460,7 +460,7 @@ fun SearchBar(
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear search"
+                        contentDescription = "清除搜索"
                     )
                 }
             }
@@ -485,11 +485,11 @@ fun EmptyState(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "No items yet",
+                text = "还没有物品",
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "Tap the + button to add your first item",
+                text = "点击 + 按钮添加第一个物品",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -575,7 +575,7 @@ fun SwipeableItemCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = "删除",
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }

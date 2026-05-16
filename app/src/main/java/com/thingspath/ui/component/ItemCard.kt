@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.thingspath.data.model.Item
+import com.thingspath.ui.theme.customColors
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,14 +32,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import java.util.concurrent.TimeUnit
-
-// Purple theme colors from the design
-private val PurplePrimary = Color(0xFF6B4EFF)
-private val PurpleLight = Color(0xFFE8E5FF)
-private val PinkLight = Color(0xFFFFE8EC)
-private val PinkPrimary = Color(0xFFFF6B8A)
-private val GrayText = Color(0xFF9B9B9B)
-private val GrayLight = Color(0xFFF5F5F7)
 
 // Compute usage days dynamically from purchase date
 private fun computeUsageDays(purchaseDate: Long?): Int? {
@@ -64,6 +57,8 @@ fun ItemCard(
     isSelected: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val colors = MaterialTheme.customColors
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -72,8 +67,8 @@ fun ItemCard(
                 onLongClick = onLongClick
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 0.dp),
-        border = if (isSelected) BorderStroke(2.dp, PurplePrimary) else null,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = if (isSelected) BorderStroke(2.dp, colors.purplePrimary) else null,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -84,7 +79,6 @@ fun ItemCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Thumbnail image - rounded square with light background
-            // 缩略图：从 imagePaths 随机取一张，避免每次重组切换图片
             val thumbnailUrl = remember(item.id, item.imagePaths.size) {
                 item.imagePaths.takeIf { it.isNotEmpty() }?.randomOrNull()
             }
@@ -93,11 +87,10 @@ fun ItemCard(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(GrayLight),
+                    .background(colors.grayLight),
                 contentAlignment = Alignment.Center
             ) {
                 if (thumbnailUrl != null) {
-                    // Coil 需区分 URL 和本地文件路径，否则本地路径被当作 URL 解析失败
                     val imageModel: Any = when {
                         thumbnailUrl.startsWith("http://") || thumbnailUrl.startsWith("https://") -> thumbnailUrl
                         else -> File(thumbnailUrl)
@@ -118,8 +111,6 @@ fun ItemCard(
                             modifier = Modifier.fillMaxSize(),
                             shape = RoundedCornerShape(12.dp),
                             maxLines = 2,
-                            backgroundColor = GrayLight,
-                            textColor = PurplePrimary
                         )
                     }
                 } else {
@@ -128,8 +119,6 @@ fun ItemCard(
                         modifier = Modifier.fillMaxSize(),
                         shape = RoundedCornerShape(12.dp),
                         maxLines = 2,
-                        backgroundColor = GrayLight,
-                        textColor = PurplePrimary
                     )
                 }
             }
@@ -149,7 +138,7 @@ fun ItemCard(
                         text = item.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                         modifier = Modifier.weight(1f)
@@ -158,14 +147,14 @@ fun ItemCard(
                     // Price tag - purple light background with $ symbol
                     if (item.purchasePrice > 0) {
                         Surface(
-                            color = PurpleLight,
+                            color = colors.purpleLight,
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 text = "¥${String.format("%.2f", item.purchasePrice)}",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = PurplePrimary,
+                                color = colors.purplePrimary,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
@@ -186,19 +175,19 @@ fun ItemCard(
                                 imageVector = Icons.Filled.LocationOn,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = GrayText
+                                tint = colors.grayText
                             )
                             Text(
                                 text = item.location,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = GrayText
+                                color = colors.grayText
                             )
                         }
                         if (item.purchaseDate != null) {
                             Text(
                                 text = "${if (item.location != null) "· " else ""}${formatDate(item.purchaseDate)}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = GrayText
+                                color = colors.grayText
                             )
                         }
                     }
@@ -222,32 +211,32 @@ fun ItemCard(
                         if (item.purchasePrice > 0 && dynamicUsageDays != null && dynamicUsageDays > 0) {
                             val dailyCost = item.purchasePrice / dynamicUsageDays
                             Surface(
-                                color = PinkLight,
+                                color = colors.pinkLight,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = "${String.format("%.1f", dailyCost)} / Day",
+                                    text = "${String.format("%.1f", dailyCost)} / 天",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = PinkPrimary,
+                                    color = colors.pinkPrimary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
                         }
 
-                        // Usage days - "已使用" in gray, "Xd" in purple (use dynamic value)
+                        // Usage days
                         if (dynamicUsageDays != null) {
                             Row {
                                 Text(
                                     text = "已使用 ",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = GrayText,
+                                    color = colors.grayText,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = "${dynamicUsageDays}d",
+                                    text = "${dynamicUsageDays}天",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = PurplePrimary,
+                                    color = colors.purplePrimary,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -261,13 +250,13 @@ fun ItemCard(
                         ) {
                             item.tags.take(2).forEach { tag ->
                                 Surface(
-                                    color = Color(0xFFF0F0F0),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Text(
                                         text = "#$tag",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = GrayText,
+                                        color = colors.grayText,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -291,6 +280,6 @@ fun ItemCard(
 
 private fun formatDate(timestamp: Long): String {
     val date = Date(timestamp)
-    val format = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+    val format = SimpleDateFormat("yyyy年M月d日", Locale.getDefault())
     return format.format(date)
 }

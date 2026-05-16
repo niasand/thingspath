@@ -6,7 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
@@ -38,28 +41,70 @@ private val LightColorScheme = lightColorScheme(
     onSurface = OnSurface,
 )
 
+@Immutable
+data class CustomColors(
+    val purplePrimary: Color,
+    val purpleLight: Color,
+    val pinkPrimary: Color,
+    val pinkLight: Color,
+    val grayText: Color,
+    val grayLight: Color,
+    val homeBackground: Color
+)
+
+val LightCustomColors = CustomColors(
+    purplePrimary = LightPurplePrimary,
+    purpleLight = LightPurpleLight,
+    pinkPrimary = LightPinkPrimary,
+    pinkLight = LightPinkLight,
+    grayText = LightGrayText,
+    grayLight = LightGrayLight,
+    homeBackground = LightHomeBackground
+)
+
+val DarkCustomColors = CustomColors(
+    purplePrimary = DarkPurplePrimary,
+    purpleLight = DarkPurpleLight,
+    pinkPrimary = DarkPinkPrimary,
+    pinkLight = DarkPinkLight,
+    grayText = DarkGrayText,
+    grayLight = DarkGrayLight,
+    homeBackground = DarkHomeBackground
+)
+
+val LocalCustomColors = staticCompositionLocalOf { LightCustomColors }
+
 @Composable
 fun ThingsPathTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    @Suppress("UNUSED_PARAMETER") dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    val customColors = when {
+        darkTheme -> DarkCustomColors
+        else -> LightCustomColors
+    }
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            window.statusBarColor = colorScheme.surface.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalCustomColors provides customColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
+
+val MaterialTheme.customColors: CustomColors
+    @Composable
+    get() = LocalCustomColors.current

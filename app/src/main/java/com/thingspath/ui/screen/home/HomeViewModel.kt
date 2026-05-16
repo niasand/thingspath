@@ -222,10 +222,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun toggleStatistics() {
-        _state.update { it.copy(showStatistics = !it.showStatistics) }
-    }
-
     fun onSearchQueryChange(query: String) {
         _state.update { it.copy(searchQuery = query, currentPage = 0) }
     }
@@ -305,12 +301,12 @@ class HomeViewModel @Inject constructor(
                 _state.update { it.copy(isExporting = true, exportSuccess = false, errorMessage = null) }
                 val jsonString = exportItemsUseCase()
                 context.contentResolver.openOutputStream(uri)?.use { it.write(jsonString.toByteArray()) }
-                    ?: throw IOException("Failed to open output stream")
+                    ?: throw IOException("无法打开输出流")
                 _state.update { it.copy(isExporting = false, exportSuccess = true) }
                 delay(1000)
                 dismissMessage()
             } catch (e: Exception) {
-                _state.update { it.copy(isExporting = false, errorMessage = e.message ?: "Export failed") }
+                _state.update { it.copy(isExporting = false, errorMessage = e.message ?: "导出失败") }
             }
         }
     }
@@ -320,13 +316,13 @@ class HomeViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isImporting = true, importSuccess = false, errorMessage = null) }
                 val jsonString = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
-                    ?: throw IOException("Failed to read input stream")
+                    ?: throw IOException("无法读取输入流")
                 importItemsUseCase(jsonString)
                 _state.update { it.copy(isImporting = false, importSuccess = true) }
                 delay(1000)
                 dismissMessage()
             } catch (e: Exception) {
-                _state.update { it.copy(isImporting = false, errorMessage = e.message ?: "Import failed") }
+                _state.update { it.copy(isImporting = false, errorMessage = e.message ?: "导入失败") }
             }
         }
     }
@@ -391,7 +387,7 @@ class HomeViewModel @Inject constructor(
                 if (e is IOException && message == "Canceled") {
                     _state.update { it.copy(isAIProcessing = false, errorMessage = "AI 分析超时，请稍后重试") }
                 } else {
-                    _state.update { it.copy(isAIProcessing = false, errorMessage = message ?: "AI Analysis failed") }
+                    _state.update { it.copy(isAIProcessing = false, errorMessage = message ?: "AI 分析失败") }
                 }
             }
         }
