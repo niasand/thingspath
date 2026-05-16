@@ -219,7 +219,7 @@ fun HomeScreen(
                 totalPrice = state.totalPrice,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
                     .clickable { onNavigateToStatistics() }
             )
 
@@ -229,7 +229,6 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp)
             )
 
             AnimatedVisibility(visible = state.allTags.isNotEmpty()) {
