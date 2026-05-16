@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.thingspath.data.model.Item
 import com.thingspath.ui.component.ItemCard
+import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -86,7 +87,9 @@ fun SwipeableItemCard(
         SwipeToDismissBox(
             state = dismissState,
             backgroundContent = {
-                val color = MaterialTheme.colorScheme.errorContainer
+                val progress = dismissState.progress
+                val alpha = (abs(progress) * 1.5f).coerceAtMost(1f)
+                val color = MaterialTheme.colorScheme.errorContainer.copy(alpha = alpha)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -98,10 +101,11 @@ fun SwipeableItemCard(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.onErrorContainer
+                        tint = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = alpha)
                     )
                 }
             },
+            enableDismissFromStartToEnd = false,
             content = {
                 ItemCard(
                     item = item,
