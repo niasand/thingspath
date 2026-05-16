@@ -82,11 +82,7 @@ fun HomeScreen(
             } else {
                 TopAppBar(
                     title = {
-                        Box(
-                            modifier = Modifier.clickable {
-                                android.util.Log.d("ThingsPath", "TP Logo clicked! isSelectionMode=${state.isSelectionMode}, items=${state.items.size}")
-                            }
-                        ) {
+                        Box(modifier = Modifier.clickable { }) {
                             Logo()
                         }
                     },
