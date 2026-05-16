@@ -1,5 +1,6 @@
 package com.thingspath.ui.screen.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -238,7 +239,7 @@ fun HomeScreen(
                     .padding(bottom = 8.dp)
             )
 
-            if (state.allTags.isNotEmpty()) {
+            AnimatedVisibility(visible = state.allTags.isNotEmpty()) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
