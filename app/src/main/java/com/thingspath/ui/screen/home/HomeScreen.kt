@@ -40,8 +40,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import com.thingspath.ui.theme.customColors
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -276,12 +276,8 @@ fun HomeScreen(
             if (state.items.isEmpty()) {
                 EmptyState(modifier = Modifier.fillMaxSize())
             } else {
-                val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
-                LaunchedEffect(state.isRefreshing) {
-                    swipeRefreshState.isRefreshing = state.isRefreshing
-                }
-                SwipeRefresh(
-                    state = swipeRefreshState,
+                PullToRefreshBox(
+                    isRefreshing = state.isRefreshing,
                     onRefresh = { viewModel.refreshData() },
                     modifier = Modifier.weight(1f)
                 ) {
