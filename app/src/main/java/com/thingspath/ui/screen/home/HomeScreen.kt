@@ -39,7 +39,6 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     var showAIDialog by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
-    var searchActive by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
     val colors = MaterialTheme.customColors
@@ -227,12 +226,6 @@ fun HomeScreen(
             SearchBar(
                 query = state.searchQuery,
                 onQueryChange = { viewModel.onSearchQueryChange(it) },
-                onSearch = { searchActive = false },
-                active = searchActive,
-                onActiveChange = { searchActive = it },
-                tags = state.allTags,
-                selectedTags = state.selectedTags,
-                onTagToggle = { viewModel.toggleTag(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
@@ -308,17 +301,11 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    onSearch: (String) -> Unit,
-    active: Boolean,
-    onActiveChange: (Boolean) -> Unit,
-    tags: List<String>,
-    selectedTags: Set<String>,
-    onTagToggle: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     SearchBar(
@@ -326,9 +313,9 @@ fun SearchBar(
             SearchBarDefaults.InputField(
                 query = query,
                 onQueryChange = onQueryChange,
-                onSearch = onSearch,
-                expanded = active,
-                onExpandedChange = onActiveChange,
+                onSearch = {},
+                expanded = false,
+                onExpandedChange = {},
                 placeholder = { Text("搜索物品...") },
                 leadingIcon = {
                     Icon(
@@ -348,41 +335,8 @@ fun SearchBar(
                 }
             )
         },
-        expanded = active,
-        onExpandedChange = onActiveChange,
+        expanded = false,
+        onExpandedChange = {},
         modifier = modifier
-    ) {
-        if (tags.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = "按标签筛选",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    tags.forEach { tag ->
-                        FilterChip(
-                            selected = tag in selectedTags,
-                            onClick = {
-                                onTagToggle(tag)
-                                onActiveChange(false)
-                            },
-                            label = { Text(tag) },
-                            leadingIcon = if (tag in selectedTags) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                            } else null
-                        )
-                    }
-                }
-            }
-        }
-    }
+    ) {}
 }
