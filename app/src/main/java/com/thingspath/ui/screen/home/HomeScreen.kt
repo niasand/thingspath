@@ -81,7 +81,15 @@ fun HomeScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { Logo() },
+                    title = {
+                        Box(
+                            modifier = Modifier.clickable {
+                                android.util.Log.d("ThingsPath", "TP Logo clicked! isSelectionMode=${state.isSelectionMode}, items=${state.items.size}")
+                            }
+                        ) {
+                            Logo()
+                        }
+                    },
                     actions = {
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(Icons.Default.FilterList, contentDescription = "排序")
