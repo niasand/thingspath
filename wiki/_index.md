@@ -25,6 +25,9 @@
 ### [external](external/_index.md)
 外部 API 文档、第三方服务参考。
 
+### [qa](qa/_index.md)
+Bug 记录、排障经验、踩坑记录。
+
 ---
 
 <!-- 文档列表（由 /add_wiki 自动维护） -->
@@ -36,3 +39,4 @@
 <!-- workflows -->
 <!-- concepts -->
 <!-- external -->
+<!-- qa -->
