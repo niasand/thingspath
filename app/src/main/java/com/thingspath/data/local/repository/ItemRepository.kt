@@ -6,6 +6,7 @@ import coil.ImageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.thingspath.data.local.datastore.SettingsRepository
 import com.thingspath.data.local.db.ItemDao
 import com.thingspath.data.local.db.ItemEntity
@@ -298,13 +299,13 @@ class ItemRepository @Inject constructor(
                 d1ApiService.upsertItem(
                     id = entity.id,
                     name = entity.name,
-                    imagePaths = entity.imagePaths,
+                    imagePaths = gson.toJson(entity.imagePaths),
                     location = entity.location,
                     purchaseDate = entity.purchaseDate,
                     purchasePrice = entity.purchasePrice,
                     usageDays = entity.usageDays,
                     note = entity.note,
-                    tags = entity.tags,
+                    tags = gson.toJson(entity.tags),
                     createdAt = entity.createdAt,
                     updatedAt = entity.updatedAt
                 )
