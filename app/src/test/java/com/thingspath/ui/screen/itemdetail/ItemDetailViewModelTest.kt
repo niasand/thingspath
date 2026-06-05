@@ -1,6 +1,7 @@
 package com.thingspath.ui.screen.itemdetail
 
 import androidx.lifecycle.SavedStateHandle
+import com.thingspath.data.remote.repository.R2ImageRepository
 import com.thingspath.domain.usecase.*
 import com.thingspath.util.MainDispatcherRule
 import io.mockk.mockk
@@ -18,6 +19,7 @@ class ItemDetailViewModelTest {
     private val updateItemUseCase: UpdateItemUseCase = mockk(relaxed = true)
     private val deleteItemUseCase: DeleteItemUseCase = mockk(relaxed = true)
     private val uploadImageUseCase: UploadImageUseCase = mockk(relaxed = true)
+    private val r2ImageRepository: R2ImageRepository = mockk(relaxed = true)
 
     @Test
     fun `viewModel initialization with valid itemId should not crash`() {
@@ -30,7 +32,8 @@ class ItemDetailViewModelTest {
             getItemByIdUseCase = getItemByIdUseCase,
             updateItemUseCase = updateItemUseCase,
             deleteItemUseCase = deleteItemUseCase,
-            uploadImageUseCase = uploadImageUseCase
+            uploadImageUseCase = uploadImageUseCase,
+            r2ImageRepository = r2ImageRepository
         )
 
         // If we reach here, the test passes

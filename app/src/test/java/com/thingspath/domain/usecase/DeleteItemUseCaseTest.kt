@@ -1,5 +1,6 @@
 package com.thingspath.domain.usecase
 
+import android.util.Log
 import com.thingspath.data.local.repository.ItemRepository
 import com.thingspath.data.model.Item
 import com.thingspath.data.remote.repository.R2ImageRepository
@@ -24,6 +25,11 @@ class DeleteItemUseCaseTest {
 
     @Before
     fun setup() {
+        mockkStatic(Log::class)
+        every { Log.d(any(), any()) } returns 0
+        every { Log.e(any(), any()) } returns 0
+        every { Log.e(any(), any(), any()) } returns 0
+
         repository = mockk(relaxed = true)
         r2ImageRepository = mockk(relaxed = true)
         useCase = DeleteItemUseCase(repository, r2ImageRepository)
