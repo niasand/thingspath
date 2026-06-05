@@ -6,7 +6,6 @@ import coil.ImageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.thingspath.data.local.datastore.SettingsRepository
 import com.thingspath.data.local.db.ItemDao
 import com.thingspath.data.local.db.ItemEntity
@@ -266,14 +265,14 @@ class ItemRepository @Inject constructor(
             ItemEntity(
                 id = (row["id"] as? Number)?.toLong() ?: 0,
                 name = row["name"] as? String ?: "",
-                imagePaths = row["image_paths"] as? String ?: "[]",
+                imagePaths = parseJsonField(row["image_paths"]),
                 imagePath = parseJsonField(row["image_paths"]).firstOrNull(),
                 location = row["location"] as? String,
                 purchaseDate = (row["purchase_date"] as? Number)?.toLong(),
                 purchasePrice = (row["purchase_price"] as? Number)?.toDouble() ?: 0.0,
                 usageDays = (row["usage_days"] as? Number)?.toInt(),
                 note = row["note"] as? String,
-                tags = row["tags"] as? String ?: "[]",
+                tags = parseJsonField(row["tags"]),
                 createdAt = (row["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
                 updatedAt = updatedAt
             )
@@ -333,14 +332,14 @@ class ItemRepository @Inject constructor(
                 ItemEntity(
                     id = (row["id"] as? Number)?.toLong() ?: 0,
                     name = row["name"] as? String ?: "",
-                    imagePaths = row["image_paths"] as? String ?: "[]",
+                    imagePaths = parseJsonField(row["image_paths"]),
                     imagePath = parseJsonField(row["image_paths"]).firstOrNull(),
                     location = row["location"] as? String,
                     purchaseDate = (row["purchase_date"] as? Number)?.toLong(),
                     purchasePrice = (row["purchase_price"] as? Number)?.toDouble() ?: 0.0,
                     usageDays = (row["usage_days"] as? Number)?.toInt(),
                     note = row["note"] as? String,
-                    tags = row["tags"] as? String ?: "[]",
+                    tags = parseJsonField(row["tags"]),
                     createdAt = (row["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),
                     updatedAt = (row["updated_at"] as? Number)?.toLong() ?: System.currentTimeMillis()
                 )

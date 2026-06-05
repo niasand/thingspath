@@ -33,14 +33,14 @@ interface ItemDao {
     suspend fun updateItem(
         id: Long,
         name: String,
-        imagePaths: String,
+        imagePaths: List<String>,
         imagePath: String?,
         location: String?,
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
         note: String?,
-        tags: String,
+        tags: List<String>,
         updatedAt: Long
     )
 
