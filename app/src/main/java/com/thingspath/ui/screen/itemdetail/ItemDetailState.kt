@@ -18,5 +18,6 @@ data class ItemDetailState(
     val showDeleteDialog: Boolean = false,
     val isImageFullScreen: Boolean = false,
     val fullScreenImageIndex: Int = 0,
-    val isImageUploading: Boolean = false
+    val isImageUploading: Boolean = false,
+    val imageUploadError: String? = null
 )

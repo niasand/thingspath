@@ -33,12 +33,14 @@ class UploadImageUseCase @Inject constructor(
         val key = "items/${UUID.randomUUID()}.$extension"
         val remoteUrl = r2ImageRepository.uploadImage(file, key)
 
-        return if (remoteUrl != null) {
+        if (remoteUrl != null) {
             Log.d("UploadImageUseCase", "Uploaded to R2: $remoteUrl")
-            remoteUrl
-        } else {
-            Log.w("UploadImageUseCase", "R2 upload failed, falling back to local path: $localPath")
-            localPath
+            return remoteUrl
         }
+
+        Log.e("UploadImageUseCase", "R2 upload failed for local file: $localPath")
+        // Clean up temp file — don't return local path (it can be lost on app reinstall)
+        file.delete()
+        return null
     }
 }

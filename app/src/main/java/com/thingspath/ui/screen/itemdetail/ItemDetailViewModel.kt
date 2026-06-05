@@ -16,6 +16,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 import android.net.Uri
+import java.io.File
 
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
@@ -39,6 +40,7 @@ class ItemDetailViewModel @Inject constructor(
             val cached = getItemByIdUseCase.getCached(itemId)
             if (cached != null) {
                 populateState(cached)
+                validateAndCleanImagePaths(cached)
             }
             // 后台异步刷新，确保数据新鲜
             loadItem(showLoading = cached == null)
@@ -159,26 +161,39 @@ class ItemDetailViewModel @Inject constructor(
 
     fun uploadImage(uri: Uri) {
         viewModelScope.launch {
-            _state.update { it.copy(isImageUploading = true) }
+            _state.update { it.copy(isImageUploading = true, imageUploadError = null) }
             val path = uploadImageUseCase(uri)
             if (path != null) {
-                _state.update { it.copy(imagePaths = it.imagePaths + path) }
+                _state.update { it.copy(imagePaths = it.imagePaths + path, isImageUploading = false) }
+            } else {
+                _state.update { it.copy(isImageUploading = false, imageUploadError = "图片上传失败，请重试") }
             }
-            _state.update { it.copy(isImageUploading = false) }
         }
     }
 
     fun uploadImages(uris: List<Uri>) {
         viewModelScope.launch {
-            _state.update { it.copy(isImageUploading = true) }
+            _state.update { it.copy(isImageUploading = true, imageUploadError = null) }
+            var failedCount = 0
             uris.forEach { uri ->
                 val path = uploadImageUseCase(uri)
                 if (path != null) {
                     _state.update { it.copy(imagePaths = it.imagePaths + path) }
+                } else {
+                    failedCount++
                 }
             }
-            _state.update { it.copy(isImageUploading = false) }
+            _state.update {
+                it.copy(
+                    isImageUploading = false,
+                    imageUploadError = if (failedCount > 0) "${failedCount} 张图片上传失败" else null
+                )
+            }
         }
+    }
+
+    fun dismissImageUploadError() {
+        _state.update { it.copy(imageUploadError = null) }
     }
 
     fun toggleEditMode() {
@@ -282,5 +297,18 @@ class ItemDetailViewModel @Inject constructor(
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         return cal.timeInMillis
+    }
+
+    /**
+     * 校验 imagePaths 中的本地路径是否存在，移除已丢失的文件引用。
+     * R2 URL（https://）不做校验，只检查本地文件路径。
+     */
+    private fun validateAndCleanImagePaths(item: Item) {
+        val cleaned = item.imagePaths.filter { path ->
+            path.startsWith("http://") || path.startsWith("https://") || File(path).exists()
+        }
+        if (cleaned.size != item.imagePaths.size) {
+            _state.update { it.copy(imagePaths = cleaned) }
+        }
     }
 }

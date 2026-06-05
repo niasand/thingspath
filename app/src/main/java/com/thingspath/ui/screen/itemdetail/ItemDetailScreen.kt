@@ -99,8 +99,19 @@ fun ItemDetailScreen(
         }
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show upload error snackbar
+    LaunchedEffect(state.imageUploadError) {
+        state.imageUploadError?.let { error ->
+            snackbarHostState.showSnackbar(error)
+            viewModel.dismissImageUploadError()
+        }
+    }
+
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("物品详情") },
