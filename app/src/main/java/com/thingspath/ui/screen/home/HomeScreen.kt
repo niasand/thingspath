@@ -97,9 +97,9 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text("购买日期") },
                                 trailingIcon = {
-                                    if (state.sortField == HomeSortField.PurchaseDate) {
+                                    if (state.filterState.sortField == HomeSortField.PurchaseDate) {
                                         Icon(
-                                            if (state.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            if (state.filterState.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                             contentDescription = null
                                         )
                                     }
@@ -112,9 +112,9 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text("物品名称") },
                                 trailingIcon = {
-                                    if (state.sortField == HomeSortField.Name) {
+                                    if (state.filterState.sortField == HomeSortField.Name) {
                                         Icon(
-                                            if (state.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            if (state.filterState.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                             contentDescription = null
                                         )
                                     }
@@ -127,9 +127,9 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text("使用天数") },
                                 trailingIcon = {
-                                    if (state.sortField == HomeSortField.UsageDays) {
+                                    if (state.filterState.sortField == HomeSortField.UsageDays) {
                                         Icon(
-                                            if (state.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            if (state.filterState.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                             contentDescription = null
                                         )
                                     }
@@ -142,9 +142,9 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text("更新时间") },
                                 trailingIcon = {
-                                    if (state.sortField == HomeSortField.UpdatedAt) {
+                                    if (state.filterState.sortField == HomeSortField.UpdatedAt) {
                                         Icon(
-                                            if (state.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            if (state.filterState.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                             contentDescription = null
                                         )
                                     }
@@ -157,9 +157,9 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text("添加时间") },
                                 trailingIcon = {
-                                    if (state.sortField == HomeSortField.CreatedAt) {
+                                    if (state.filterState.sortField == HomeSortField.CreatedAt) {
                                         Icon(
-                                            if (state.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            if (state.filterState.sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                             contentDescription = null
                                         )
                                     }
@@ -219,8 +219,8 @@ fun HomeScreen(
                 .padding(paddingValues)
         ) {
             StatisticsHeader(
-                totalCount = state.totalItemCount,
-                totalPrice = state.totalPrice,
+                totalCount = state.listState.totalItemCount,
+                totalPrice = state.listState.totalPrice,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -228,25 +228,25 @@ fun HomeScreen(
             )
 
             SearchBar(
-                query = state.searchQuery,
+                query = state.filterState.searchQuery,
                 onQueryChange = { viewModel.onSearchQueryChange(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             )
 
-            AnimatedVisibility(visible = state.allTags.isNotEmpty()) {
+            AnimatedVisibility(visible = state.filterState.allTags.isNotEmpty()) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    items(state.allTags) { tag ->
+                    items(state.filterState.allTags) { tag ->
                         FilterChip(
-                            selected = tag in state.selectedTags,
+                            selected = tag in state.filterState.selectedTags,
                             onClick = { viewModel.toggleTag(tag) },
                             label = { Text(tag) },
-                            leadingIcon = if (tag in state.selectedTags) {
+                            leadingIcon = if (tag in state.filterState.selectedTags) {
                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                             } else null
                         )
@@ -254,7 +254,7 @@ fun HomeScreen(
                 }
             }
 
-            if (state.items.isEmpty()) {
+            if (state.listState.items.isEmpty()) {
                 EmptyState(modifier = Modifier.fillMaxSize())
             } else {
                 PullToRefreshBox(
@@ -263,7 +263,7 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     ListView(
-                        items = state.items,
+                        items = state.listState.items,
                         isSelectionMode = state.isSelectionMode,
                         selectedIds = state.selectedItemIds,
                         onItemClick = { id ->

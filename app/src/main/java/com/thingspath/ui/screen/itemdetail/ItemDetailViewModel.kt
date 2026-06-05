@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thingspath.data.remote.repository.R2ImageRepository
 import com.thingspath.data.model.Item
+import com.thingspath.domain.model.AppError
 import com.thingspath.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -16,6 +17,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 import android.net.Uri
+import android.util.Log
 import java.io.File
 
 @HiltViewModel
@@ -76,6 +78,7 @@ class ItemDetailViewModel @Inject constructor(
                 item?.let { populateState(it) }
                 if (showLoading) _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to load item", AppError.StorageError("Load item failed", e))
                 _state.update { it.copy(isLoading = false) }
             }
         }
@@ -310,5 +313,9 @@ class ItemDetailViewModel @Inject constructor(
         if (cleaned.size != item.imagePaths.size) {
             _state.update { it.copy(imagePaths = cleaned) }
         }
+    }
+
+    companion object {
+        private const val TAG = "ItemDetailViewModel"
     }
 }

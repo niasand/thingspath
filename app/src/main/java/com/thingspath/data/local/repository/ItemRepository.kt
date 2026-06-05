@@ -14,6 +14,7 @@ import com.thingspath.data.local.db.toEntity
 import com.thingspath.data.local.db.toItem
 import com.thingspath.data.model.Item
 import com.thingspath.data.remote.D1ApiService
+import com.thingspath.domain.model.AppError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -71,8 +72,10 @@ class ItemRepository @Inject constructor(
                     Log.d(TAG, "Room has $count items, doing incremental sync...")
                     incrementalSync()
                 }
-            } catch (e: Exception) {
+            } catch (e: AppError) {
                 Log.e(TAG, "Failed to initialize", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initialize", AppError.SyncError("Init sync failed", e))
             }
         }
     }
@@ -185,7 +188,7 @@ class ItemRepository @Inject constructor(
                     Log.d(TAG, "D1 UPDATE succeeded for item ${item.id}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync item ${item.id} to D1", e)
+                Log.e(TAG, "Failed to sync item ${item.id} to D1", AppError.SyncError("D1 update failed for item ${item.id}", e))
             }
         }
     }
@@ -199,7 +202,7 @@ class ItemRepository @Inject constructor(
             try {
                 d1ApiService.deleteItemById(item.id)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync delete to D1 for item ${item.id}", e)
+                Log.e(TAG, "Failed to sync delete to D1 for item ${item.id}", AppError.SyncError("D1 delete failed for item ${item.id}", e))
             }
         }
     }
@@ -210,7 +213,7 @@ class ItemRepository @Inject constructor(
             try {
                 d1ApiService.deleteItemById(itemId)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync delete to D1 for item $itemId", e)
+                Log.e(TAG, "Failed to sync delete to D1 for item $itemId", AppError.SyncError("D1 delete failed for item $itemId", e))
             }
         }
     }
@@ -221,7 +224,7 @@ class ItemRepository @Inject constructor(
             try {
                 d1ApiService.deleteItemsByIds(ids.toList())
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync bulk delete to D1 for ids $ids", e)
+                Log.e(TAG, "Failed to sync bulk delete to D1 for ids $ids", AppError.SyncError("D1 bulk delete failed for ids $ids", e))
             }
         }
     }
@@ -308,7 +311,7 @@ class ItemRepository @Inject constructor(
                 )
                 if (entity.updatedAt > maxUpdatedAt) maxUpdatedAt = entity.updatedAt
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to push item ${entity.id} to D1, will retry next sync", e)
+                Log.e(TAG, "Failed to push item ${entity.id} to D1, will retry next sync", AppError.SyncError("D1 push failed for item ${entity.id}", e))
                 // 不推进 watermark，下次同步重试
             }
         }
@@ -350,7 +353,7 @@ class ItemRepository @Inject constructor(
             settingsRepository.setLastPullUpdatedAt(maxTs)
             settingsRepository.setLastPushUpdatedAt(maxTs)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to pull from D1", e)
+            Log.e(TAG, "Failed to pull from D1", AppError.SyncError("Full pull from D1 failed", e))
         }
     }
 

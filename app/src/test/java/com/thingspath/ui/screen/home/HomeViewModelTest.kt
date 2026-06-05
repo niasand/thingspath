@@ -171,20 +171,20 @@ class HomeViewModelTest {
 
         // Then: 初始状态的默认值
         val state = viewModel.state.value
-        assertFalse("isLoading 应为 false", state.isLoading)
-        assertTrue("items 应为空列表", state.items.isEmpty())
-        assertEquals("searchQuery 应为空字符串", "", state.searchQuery)
-        assertEquals("sortField 默认为 UpdatedAt", HomeSortField.UpdatedAt, state.sortField)
-        assertFalse("sortAscending 默认为 false", state.sortAscending)
+        assertFalse("isLoading 应为 false", state.listState.isLoading)
+        assertTrue("items 应为空列表", state.listState.items.isEmpty())
+        assertEquals("searchQuery 应为空字符串", "", state.filterState.searchQuery)
+        assertEquals("sortField 默认为 UpdatedAt", HomeSortField.UpdatedAt, state.filterState.sortField)
+        assertFalse("sortAscending 默认为 false", state.filterState.sortAscending)
         assertEquals("pageSize 默认为 10", 10, state.pageSize)
-        assertEquals("currentPage 默认为 0", 0, state.currentPage)
+        assertEquals("currentPage 默认为 0", 0, state.listState.currentPage)
         assertFalse("isExporting 应为 false", state.isExporting)
         assertFalse("isImporting 应为 false", state.isImporting)
         assertNull("errorMessage 应为 null", state.errorMessage)
         assertFalse("isAIProcessing 应为 false", state.isAIProcessing)
         assertFalse("isSelectionMode 应为 false", state.isSelectionMode)
         assertTrue("selectedItemIds 应为空", state.selectedItemIds.isEmpty())
-        assertTrue("selectedTags 应为空", state.selectedTags.isEmpty())
+        assertTrue("selectedTags 应为空", state.filterState.selectedTags.isEmpty())
         assertTrue("infiniteScroll 默认为 true", state.infiniteScroll)
     }
 
@@ -201,9 +201,9 @@ class HomeViewModelTest {
 
         // Then
         val state = viewModel.state.value
-        assertEquals("items 数量应匹配", 3, state.items.size)
-        assertFalse("加载完成后 isLoading 应为 false", state.isLoading)
-        assertEquals("totalItemCount 应等于 3", 3, state.totalItemCount)
+        assertEquals("items 数量应匹配", 3, state.listState.items.size)
+        assertFalse("加载完成后 isLoading 应为 false", state.listState.isLoading)
+        assertEquals("totalItemCount 应等于 3", 3, state.listState.totalItemCount)
     }
 
     @Test
@@ -216,7 +216,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // Then: 14999 + 1899 + 9999 = 26897.0
-        assertEquals(26897.0, state(viewModel).totalPrice, 0.01)
+        assertEquals(26897.0, state(viewModel).listState.totalPrice, 0.01)
     }
 
     @Test
@@ -229,7 +229,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // Then: tags 应去重并排序
-        val tags = state(viewModel).allTags
+        val tags = state(viewModel).filterState.allTags
         assertTrue("应包含 '数码产品'", tags.contains("数码产品"))
         assertTrue("应包含 '电脑办公'", tags.contains("电脑办公"))
         assertTrue("应包含 '家具家居'", tags.contains("家具家居"))
@@ -243,14 +243,14 @@ class HomeViewModelTest {
         itemsFlow.value = emptyList()
         val viewModel = createViewModel()
         advanceUntilIdle()
-        assertTrue("初始 items 为空", state(viewModel).items.isEmpty())
+        assertTrue("初始 items 为空", state(viewModel).listState.items.isEmpty())
 
         // When: 数据源更新
         itemsFlow.value = testItems
         advanceUntilIdle()
 
         // Then
-        assertEquals("items 应更新为 3 条", 3, state(viewModel).items.size)
+        assertEquals("items 应更新为 3 条", 3, state(viewModel).listState.items.size)
     }
 
     // ==================== 3. 搜索过滤 ====================
@@ -261,7 +261,7 @@ class HomeViewModelTest {
         itemsFlow.value = testItems
         val viewModel = createViewModel()
         advanceUntilIdle()
-        assertEquals("初始应有 3 条", 3, state(viewModel).items.size)
+        assertEquals("初始应有 3 条", 3, state(viewModel).listState.items.size)
 
         // When: 搜索 "MacBook"
         viewModel.onSearchQueryChange("MacBook")
@@ -269,8 +269,8 @@ class HomeViewModelTest {
 
         // Then: 只有 MacBook Pro 匹配
         val state = state(viewModel)
-        assertEquals("应只匹配 1 条", 1, state.items.size)
-        assertEquals("MacBook Pro", state.items[0].name)
+        assertEquals("应只匹配 1 条", 1, state.listState.items.size)
+        assertEquals("MacBook Pro", state.listState.items[0].name)
     }
 
     @Test
@@ -286,8 +286,8 @@ class HomeViewModelTest {
 
         // Then: 只有 AirPods Pro 的 note 包含"降噪"
         val state = state(viewModel)
-        assertEquals(1, state.items.size)
-        assertEquals("AirPods Pro", state.items[0].name)
+        assertEquals(1, state.listState.items.size)
+        assertEquals("AirPods Pro", state.listState.items[0].name)
     }
 
     @Test
@@ -302,7 +302,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // Then: MacBook Pro 和 Herman Miller 在办公室
-        assertEquals(2, state(viewModel).items.size)
+        assertEquals(2, state(viewModel).listState.items.size)
     }
 
     @Test
@@ -315,14 +315,14 @@ class HomeViewModelTest {
         // 先搜索
         viewModel.onSearchQueryChange("MacBook")
         advanceUntilIdle()
-        assertEquals(1, state(viewModel).items.size)
+        assertEquals(1, state(viewModel).listState.items.size)
 
         // When: 清空搜索词
         viewModel.onSearchQueryChange("")
         advanceUntilIdle()
 
         // Then: 恢复全部
-        assertEquals(3, state(viewModel).items.size)
+        assertEquals(3, state(viewModel).listState.items.size)
     }
 
     @Test
@@ -337,7 +337,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // Then
-        assertEquals(1, state(viewModel).items.size)
+        assertEquals(1, state(viewModel).listState.items.size)
     }
 
     // ==================== 4. 排序切换 ====================
@@ -356,7 +356,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // Then: 升序 → 最早的在前
-        val items = state(viewModel).items
+        val items = state(viewModel).listState.items
         // 1699000000000(Herman) < 1700000000000(MacBook) < 1701000000000(AirPods)
         assertEquals("Herman Miller 椅子", items[0].name)
         assertEquals("MacBook Pro", items[1].name)
@@ -374,7 +374,7 @@ class HomeViewModelTest {
         viewModel.selectSort(HomeSortField.PurchaseDate)
         advanceUntilIdle()
 
-        val items = state(viewModel).items
+        val items = state(viewModel).listState.items
         // 降序 → 最新的在前
         assertEquals("AirPods Pro", items[0].name)
         assertEquals("MacBook Pro", items[1].name)
@@ -394,7 +394,7 @@ class HomeViewModelTest {
         viewModel.selectSort(HomeSortField.Name) // 再切一次变为升序
         advanceUntilIdle()
 
-        val items = state(viewModel).items
+        val items = state(viewModel).listState.items
         // 字母序：AirPods Pro → Herman Miller 椅子 → MacBook Pro
         assertEquals("AirPods Pro", items[0].name)
         assertEquals("Herman Miller 椅子", items[1].name)
@@ -409,18 +409,18 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // When: 默认 UpdatedAt, ascending=false
-        assertFalse("初始 sortAscending=false", state(viewModel).sortAscending)
+        assertFalse("初始 sortAscending=false", state(viewModel).filterState.sortAscending)
 
         // 切到 Name（首次，默认降序）
         viewModel.selectSort(HomeSortField.Name)
         advanceUntilIdle()
-        assertEquals(HomeSortField.Name, state(viewModel).sortField)
-        assertFalse("首次切到新字段应为降序", state(viewModel).sortAscending)
+        assertEquals(HomeSortField.Name, state(viewModel).filterState.sortField)
+        assertFalse("首次切到新字段应为降序", state(viewModel).filterState.sortAscending)
 
         // 再次点击 Name → 升序
         viewModel.selectSort(HomeSortField.Name)
         advanceUntilIdle()
-        assertTrue("再次点击同字段应切换为升序", state(viewModel).sortAscending)
+        assertTrue("再次点击同字段应切换为升序", state(viewModel).filterState.sortAscending)
     }
 
     // ==================== 5. 删除 item ====================
@@ -733,7 +733,7 @@ class HomeViewModelTest {
         assertFalse("isAIProcessing 应为 false", state(viewModel).isAIProcessing)
         assertNotNull("应设置 errorMessage", state(viewModel).errorMessage)
         assertTrue("errorMessage 应包含错误信息",
-            state(viewModel).errorMessage!!.contains("API 限流"))
+            state(viewModel).errorMessage!!.contains("AI 分析失败"))
     }
 
     @Test
@@ -773,9 +773,9 @@ class HomeViewModelTest {
 
         // Then: 只有 MacBook Pro 有 "电脑办公" tag
         val state = state(viewModel)
-        assertTrue("selectedTags 应包含 '电脑办公'", state.selectedTags.contains("电脑办公"))
-        assertEquals(1, state.items.size)
-        assertEquals("MacBook Pro", state.items[0].name)
+        assertTrue("selectedTags 应包含 '电脑办公'", state.filterState.selectedTags.contains("电脑办公"))
+        assertEquals(1, state.listState.items.size)
+        assertEquals("MacBook Pro", state.listState.items[0].name)
     }
 
     @Test
@@ -788,13 +788,13 @@ class HomeViewModelTest {
         // 选中再取消
         viewModel.toggleTag("数码产品")
         advanceUntilIdle()
-        assertEquals(2, state(viewModel).items.size) // MacBook + AirPods
+        assertEquals(2, state(viewModel).listState.items.size) // MacBook + AirPods
 
         viewModel.toggleTag("数码产品") // 再次 toggle 取消
         advanceUntilIdle()
 
         // Then: 恢复全部
-        assertEquals(3, state(viewModel).items.size)
+        assertEquals(3, state(viewModel).listState.items.size)
     }
 
     // ==================== 10. 选择模式 ====================
@@ -949,8 +949,8 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // 3 items / 10 per page = 1 page
-        assertEquals(1, state(viewModel).pageCount)
-        assertEquals(0, state(viewModel).currentPage)
+        assertEquals(1, state(viewModel).listState.pageCount)
+        assertEquals(0, state(viewModel).listState.currentPage)
     }
 
     @Test
@@ -964,14 +964,14 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // 25 items / 10 = 3 pages
-        assertEquals(3, state(viewModel).pageCount)
+        assertEquals(3, state(viewModel).listState.pageCount)
 
         // When: pageSize 变为 20
         pageSizeFlow.value = 20
         advanceUntilIdle()
 
         // 25 items / 20 = 2 pages
-        assertEquals(2, state(viewModel).pageCount)
+        assertEquals(2, state(viewModel).listState.pageCount)
     }
 
     @Test
@@ -983,30 +983,30 @@ class HomeViewModelTest {
         itemsFlow.value = manyItems
         val viewModel = createViewModel()
         advanceUntilIdle()
-        assertEquals(3, state(viewModel).pageCount)
-        assertEquals(0, state(viewModel).currentPage)
+        assertEquals(3, state(viewModel).listState.pageCount)
+        assertEquals(0, state(viewModel).listState.currentPage)
 
         // When: 下一页
         viewModel.goToNextPage()
-        assertEquals(1, state(viewModel).currentPage)
+        assertEquals(1, state(viewModel).listState.currentPage)
 
         viewModel.goToNextPage()
-        assertEquals(2, state(viewModel).currentPage)
+        assertEquals(2, state(viewModel).listState.currentPage)
 
         // 边界：已到最后一页，不应超过
         viewModel.goToNextPage()
-        assertEquals(2, state(viewModel).currentPage)
+        assertEquals(2, state(viewModel).listState.currentPage)
 
         // When: 上一页
         viewModel.goToPreviousPage()
-        assertEquals(1, state(viewModel).currentPage)
+        assertEquals(1, state(viewModel).listState.currentPage)
 
         viewModel.goToPreviousPage()
-        assertEquals(0, state(viewModel).currentPage)
+        assertEquals(0, state(viewModel).listState.currentPage)
 
         // 边界：已到第一页，不应小于 0
         viewModel.goToPreviousPage()
-        assertEquals(0, state(viewModel).currentPage)
+        assertEquals(0, state(viewModel).listState.currentPage)
     }
 
     @Test
@@ -1021,15 +1021,15 @@ class HomeViewModelTest {
 
         // When: 跳到第 2 页
         viewModel.goToPage(1)
-        assertEquals(1, state(viewModel).currentPage)
+        assertEquals(1, state(viewModel).listState.currentPage)
 
         // 边界：超过 pageCount 应 clamp
         viewModel.goToPage(100)
-        assertEquals(2, state(viewModel).currentPage) // 最大 pageIndex = 2
+        assertEquals(2, state(viewModel).listState.currentPage) // 最大 pageIndex = 2
 
         // 负数也应 clamp
         viewModel.goToPage(-1)
-        assertEquals(0, state(viewModel).currentPage)
+        assertEquals(0, state(viewModel).listState.currentPage)
     }
 
     @Test
@@ -1044,14 +1044,14 @@ class HomeViewModelTest {
 
         // 跳到第 2 页
         viewModel.goToPage(2)
-        assertEquals(2, state(viewModel).currentPage)
+        assertEquals(2, state(viewModel).listState.currentPage)
 
         // When: 搜索
         viewModel.onSearchQueryChange("Item 1")
         advanceUntilIdle()
 
         // Then: currentPage 应重置为 0
-        assertEquals(0, state(viewModel).currentPage)
+        assertEquals(0, state(viewModel).listState.currentPage)
     }
 
     // ==================== 14. 下拉刷新 ====================

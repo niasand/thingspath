@@ -28,6 +28,7 @@ import kotlinx.coroutines.withTimeout
 import java.io.IOException
 
 import com.thingspath.data.remote.repository.SiliconFlowRepository
+import com.thingspath.domain.model.AppError
 import com.thingspath.ui.screen.home.HomeSortField.*
 
 @HiltViewModel
@@ -61,11 +62,13 @@ class HomeViewModel @Inject constructor(
                         else -> 10
                     }
                     _state.update { current ->
-                        val pageCount = calculatePageCount(current.items.size, normalized)
+                        val pageCount = calculatePageCount(current.listState.items.size, normalized)
                         current.copy(
                             pageSize = normalized,
-                            currentPage = 0,
-                            pageCount = pageCount
+                            listState = current.listState.copy(
+                                currentPage = 0,
+                                pageCount = pageCount
+                            )
                         )
                     }
                 }
@@ -92,10 +95,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 getItemsUseCase(), // Fetch all items (no query)
-                _state.map { it.searchQuery }.distinctUntilChanged().debounce(300),
-                _state.map { it.selectedTags }.distinctUntilChanged(),
-                _state.map { it.sortField }.distinctUntilChanged(),
-                _state.map { it.sortAscending }.distinctUntilChanged()
+                _state.map { it.filterState.searchQuery }.distinctUntilChanged().debounce(300),
+                _state.map { it.filterState.selectedTags }.distinctUntilChanged(),
+                _state.map { it.filterState.sortField }.distinctUntilChanged(),
+                _state.map { it.filterState.sortAscending }.distinctUntilChanged()
             ) { allItems, query, selectedTags, sortField, ascending ->
                 // 1. Extract all tags from all items
                 val allTags = allItems.flatMap { it.tags }.filter { it.isNotBlank() }.distinct().sorted()
@@ -120,7 +123,7 @@ class HomeViewModel @Inject constructor(
 
                 // 4. Apply Sorting
                 val sorted = applySorting(filtered, sortField, ascending)
-                
+
                 // Determine if we should scroll to top
                 // Check if any of the controlling parameters have changed since last emission
                 val shouldScrollToTop = (lastSortField != null && lastSortField != sortField) ||
@@ -145,19 +148,22 @@ class HomeViewModel @Inject constructor(
 
                  _state.update {
                      val pageCount = calculatePageCount(displayedItems.size, it.pageSize)
-                     val clampedPage = clampPage(it.currentPage, pageCount)
-                     // 过滤掉已不存在的 tag，防止选中 tag 被删除后列表永久为空
-                     val validSelectedTags = it.selectedTags.intersect(allTagsSet)
+                     val clampedPage = clampPage(it.listState.currentPage, pageCount)
+                     val validSelectedTags = it.filterState.selectedTags.intersect(allTagsSet)
 
                      it.copy(
-                         items = displayedItems,
-                         allTags = allTags,
-                         selectedTags = validSelectedTags,
-                         isLoading = false,
-                         totalItemCount = totalCount,
-                         totalPrice = totalPrice,
-                         currentPage = clampedPage,
-                         pageCount = pageCount,
+                         listState = it.listState.copy(
+                             items = displayedItems,
+                             isLoading = false,
+                             totalItemCount = totalCount,
+                             totalPrice = totalPrice,
+                             currentPage = clampedPage,
+                             pageCount = pageCount
+                         ),
+                         filterState = it.filterState.copy(
+                             allTags = allTags,
+                             selectedTags = validSelectedTags
+                         ),
                          scrollToTopSignal = if (shouldScrollToTop) it.scrollToTopSignal + 1 else it.scrollToTopSignal
                      )
                  }
@@ -173,9 +179,12 @@ class HomeViewModel @Inject constructor(
     )
 
     fun toggleTag(tag: String) {
-        _state.update { 
-            val newTags = if (tag in it.selectedTags) it.selectedTags - tag else it.selectedTags + tag
-            it.copy(selectedTags = newTags, currentPage = 0)
+        _state.update {
+            val newTags = if (tag in it.filterState.selectedTags) it.filterState.selectedTags - tag else it.filterState.selectedTags + tag
+            it.copy(
+                filterState = it.filterState.copy(selectedTags = newTags),
+                listState = it.listState.copy(currentPage = 0)
+            )
         }
     }
 
@@ -185,7 +194,7 @@ class HomeViewModel @Inject constructor(
             val startTime = System.currentTimeMillis()
             try {
                 itemRepository.refreshFromRemote()
-            } catch (_: Exception) {}
+            } catch (_: AppError) {} catch (_: Exception) {}
             // 保证 loading 至少展示 500ms，避免一闪而过
             val elapsed = System.currentTimeMillis() - startTime
             if (elapsed < 500L) delay(500L - elapsed)
@@ -198,14 +207,14 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleItemSelection(id: Long) {
-        _state.update { 
+        _state.update {
             val newSelection = if (id in it.selectedItemIds) it.selectedItemIds - id else it.selectedItemIds + id
             it.copy(selectedItemIds = newSelection)
         }
     }
 
     fun selectAll() {
-        _state.update { it.copy(selectedItemIds = it.items.map { item -> item.id }.toSet()) }
+        _state.update { it.copy(selectedItemIds = it.listState.items.map { item -> item.id }.toSet()) }
     }
 
     fun deleteSelectedItems() {
@@ -217,26 +226,36 @@ class HomeViewModel @Inject constructor(
                 deleteItemUseCase(idsToDelete)
                 _state.update { it.copy(isSelectionMode = false, selectedItemIds = emptySet()) }
             } catch (e: Exception) {
-                _state.update { it.copy(errorMessage = "批量删除失败：${e.message ?: "未知错误"}") }
+                val error = if (e is AppError) e else AppError.UnknownError("批量删除失败", e)
+                _state.update { it.copy(errorMessage = "批量删除失败：${error.message ?: "未知错误"}") }
             }
         }
     }
 
     fun onSearchQueryChange(query: String) {
-        _state.update { it.copy(searchQuery = query, currentPage = 0) }
+        _state.update {
+            it.copy(
+                filterState = it.filterState.copy(searchQuery = query),
+                listState = it.listState.copy(currentPage = 0)
+            )
+        }
     }
 
     fun selectSort(field: HomeSortField) {
         _state.update { current ->
-            val nextAscending = if (current.sortField == field) !current.sortAscending else false
-            val sorted = applySorting(current.items, field, nextAscending)
+            val nextAscending = if (current.filterState.sortField == field) !current.filterState.sortAscending else false
+            val sorted = applySorting(current.listState.items, field, nextAscending)
             val pageCount = calculatePageCount(sorted.size, current.pageSize)
             current.copy(
-                sortField = field,
-                sortAscending = nextAscending,
-                currentPage = 0,
-                pageCount = pageCount,
-                items = sorted
+                filterState = current.filterState.copy(
+                    sortField = field,
+                    sortAscending = nextAscending
+                ),
+                listState = current.listState.copy(
+                    currentPage = 0,
+                    pageCount = pageCount,
+                    items = sorted
+                )
             )
         }
     }
@@ -253,22 +272,22 @@ class HomeViewModel @Inject constructor(
 
     fun goToPreviousPage() {
         _state.update { current ->
-            if (current.pageCount <= 1) return@update current
-            current.copy(currentPage = (current.currentPage - 1).coerceAtLeast(0))
+            if (current.listState.pageCount <= 1) return@update current
+            current.copy(listState = current.listState.copy(currentPage = (current.listState.currentPage - 1).coerceAtLeast(0)))
         }
     }
 
     fun goToNextPage() {
         _state.update { current ->
-            if (current.pageCount <= 1) return@update current
-            current.copy(currentPage = (current.currentPage + 1).coerceAtMost(current.pageCount - 1))
+            if (current.listState.pageCount <= 1) return@update current
+            current.copy(listState = current.listState.copy(currentPage = (current.listState.currentPage + 1).coerceAtMost(current.listState.pageCount - 1)))
         }
     }
 
     fun goToPage(pageIndex: Int) {
         _state.update { current ->
-            if (current.pageCount <= 0) return@update current
-            current.copy(currentPage = pageIndex.coerceIn(0, current.pageCount - 1))
+            if (current.listState.pageCount <= 0) return@update current
+            current.copy(listState = current.listState.copy(currentPage = pageIndex.coerceIn(0, current.listState.pageCount - 1)))
         }
     }
 
@@ -306,7 +325,8 @@ class HomeViewModel @Inject constructor(
                 delay(1000)
                 dismissMessage()
             } catch (e: Exception) {
-                _state.update { it.copy(isExporting = false, errorMessage = e.message ?: "导出失败") }
+                val error = if (e is AppError) e else AppError.StorageError("导出失败", e)
+                _state.update { it.copy(isExporting = false, errorMessage = error.message ?: "导出失败") }
             }
         }
     }
@@ -322,7 +342,8 @@ class HomeViewModel @Inject constructor(
                 delay(1000)
                 dismissMessage()
             } catch (e: Exception) {
-                _state.update { it.copy(isImporting = false, errorMessage = e.message ?: "导入失败") }
+                val error = if (e is AppError) e else AppError.StorageError("导入失败", e)
+                _state.update { it.copy(isImporting = false, errorMessage = error.message ?: "导入失败") }
             }
         }
     }
@@ -344,7 +365,7 @@ class HomeViewModel @Inject constructor(
                 // 过滤无效名称的物品
                 val validItems = extractedItems.filter { !it.name.isNullOrBlank() }
                 if (validItems.isEmpty()) {
-                    throw IllegalStateException("无法识别任何物品名称")
+                    throw AppError.AiServiceError("无法识别任何物品名称")
                 }
 
                 val addedNames = mutableListOf<String>()
@@ -387,7 +408,8 @@ class HomeViewModel @Inject constructor(
                 if (e is IOException && message == "Canceled") {
                     _state.update { it.copy(isAIProcessing = false, errorMessage = "AI 分析超时，请稍后重试") }
                 } else {
-                    _state.update { it.copy(isAIProcessing = false, errorMessage = message ?: "AI 分析失败") }
+                    val error = if (e is AppError) e else AppError.AiServiceError("AI 分析失败", e)
+                    _state.update { it.copy(isAIProcessing = false, errorMessage = error.message ?: "AI 分析失败") }
                 }
             }
         }

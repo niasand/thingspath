@@ -2,6 +2,7 @@ package com.thingspath.data.remote.repository
 
 import android.util.Log
 import com.thingspath.BuildConfig
+import com.thingspath.domain.model.AppError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -62,7 +63,7 @@ class R2ImageRepository @Inject constructor() {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to upload image to R2", e)
+            Log.e(TAG, "Failed to upload image to R2", AppError.ImageError("R2 upload failed for key: $key", e))
             null
         }
     }
@@ -95,7 +96,7 @@ class R2ImageRepository @Inject constructor() {
                 success
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete image from R2", e)
+            Log.e(TAG, "Failed to delete image from R2", AppError.ImageError("R2 delete failed for key: $key", e))
             false
         }
     }

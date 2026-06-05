@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.thingspath.data.local.datastore.SettingsRepository
 import com.thingspath.data.remote.api.SiliconFlowApi
 import com.thingspath.data.remote.model.AIExtractedItem
+import com.thingspath.domain.model.AppError
 import com.thingspath.data.remote.model.ChatCompletionRequest
 import com.thingspath.data.remote.model.Message
 import kotlinx.coroutines.flow.first
@@ -92,7 +93,7 @@ class SiliconFlowRepository @Inject constructor(
                 val singleItem = gson.fromJson(jsonString, AIExtractedItem::class.java)
                 listOf(singleItem)
             } catch (_: Exception) {
-                throw IllegalStateException("Failed to parse AI response: $content", e)
+                throw AppError.AiServiceError("Failed to parse AI response: $content", e)
             }
         }
     }
