@@ -2,7 +2,7 @@
 
 ## Status: active
 ## Created: 2026-06-05 23:00
-## Updated: 2026-06-05 23:00
+## Updated: 2026-06-05 23:55
 
 ## Objective
 分三阶段提升 ThingsPath 项目的安全性、代码质量和开发体验：
@@ -41,7 +41,7 @@
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| P0 | R8 混淆 + 核心单元测试 | pending |
+| P0 | R8 混淆 + 核心单元测试 | ✅ completed |
 | P1 | HomeState 拆分 + 统一错误处理 | pending |
 | P2 | Kotlin 2.0 + Compose BOM 升级 | pending |
 
@@ -51,10 +51,21 @@
 
 | # | Claim | Evidence | Status |
 |---|-------|----------|--------|
-| | | | |
+| 1 | R8 minification enabled | `isMinifyEnabled = true` in build.gradle.kts:44, assembleRelease succeeds | confirmed |
+| 2 | Resource shrinking enabled | `isShrinkResources = true` in build.gradle.kts:45, shrinkReleaseRes task runs | confirmed |
+| 3 | ProGuard rules cover all frameworks | proguard-rules.pro has Gson/Room/Hilt/Retrofit/Coroutines/DataStore sections | confirmed |
+| 4 | 117 new unit tests added | ItemRepositoryTest(38) + R2ImageRepositoryTest(33) + HomeViewModelTest(46) = 117 | confirmed |
+| 5 | All 128 tests pass | `./gradlew test` → BUILD SUCCESSFUL, 0 failures | confirmed |
+| 6 | Release build succeeds with R8 | `./gradlew assembleRelease` → BUILD SUCCESSFUL | confirmed |
 
 ## Iteration Log
 
 | # | Time | Action | Result | Next |
 |---|------|--------|--------|------|
-| 1 | 2026-06-05 23:00 | 创建 Goal，解析三阶段任务 | Goal initialized | Start P0: 分析 R8 配置现状 |
+| 1 | 2026-06-05 23:00 | 创建 Goal，解析三阶段任务 | Goal initialized | Start P0 |
+| 2 | 2026-06-05 23:05 | 并行启动 4 个 worktree agent | R8 config + 3 test agents running | Wait for completion |
+| 3 | 2026-06-05 23:15 | R8 config agent completed | build.gradle.kts + proguard-rules.pro updated | Continue waiting |
+| 4 | 2026-06-05 23:35 | HomeVM test agent completed | 46 tests, all pass | Continue waiting |
+| 5 | 2026-06-05 23:55 | ItemRepo + R2Repo agents completed | 38 + 33 tests, all pass | Merge all changes |
+| 6 | 2026-06-05 23:55 | Merged all worktree changes to main | Fixed isShrinkResources typo, added JVM args | Run verification |
+| 7 | 2026-06-05 23:57 | Full verification: 128/128 tests pass, assembleRelease OK | P0 complete | Commit + move to P1 |
