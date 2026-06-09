@@ -98,3 +98,6 @@ lint-results*.xml
 .DS_Store
 Thumbs.db
 .gstack/
+
+# Diagram render artifacts
+diagrams/
