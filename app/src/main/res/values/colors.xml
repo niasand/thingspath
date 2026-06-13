@@ -8,6 +8,6 @@
     <color name="purple_grey_40">#FF625b71</color>
     <color name="pink_40">#FF7D5260</color>
 
-    <!-- Neutral Background for user icon -->
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Black background for launcher icon -->
+    <color name="ic_launcher_background">#000000</color>
 </resources>
