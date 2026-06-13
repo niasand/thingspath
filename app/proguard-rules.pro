@@ -5,6 +5,10 @@
 -keepattributes Signature
 -keepattributes *Annotation*
 -keep class com.thingspath.data.remote.model.** { *; }
+-keep class com.thingspath.data.remote.D1QueryRequest { *; }
+-keep class com.thingspath.data.remote.D1Result { *; }
+-keep class com.thingspath.data.remote.D1Error { *; }
+-keep class com.thingspath.data.remote.D1Meta { *; }
 -keep class com.thingspath.data.local.db.ItemEntity { *; }
 -keep class com.thingspath.data.model.** { *; }
 
