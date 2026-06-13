@@ -40,16 +40,21 @@ android {
         buildConfigField("String", "D1_API_TOKEN", "\"${localProperties.getProperty("D1_API_TOKEN", "")}\"")
     }
 
-    // Release signing: read keystore from local.properties; fall back to debug
-    // signing when missing so CI / fresh clones can still build.
+    // Release signing: read keystore from local.properties (local dev) OR
+    // environment variables (CI), falling back to debug signing when neither
+    // is present so fresh clones can still build.
     // Why: previously release reused debug signing — every release build shared
     // the debug certificate, which can't be used for Play Store uploads and
     // triggers "signature conflict" warnings on overwrite installs.
+    fun signingProp(key: String): String =
+        System.getenv(key)?.takeIf { it.isNotEmpty() }
+            ?: localProperties.getProperty(key, "")
+
     val releaseSigningConfig = run {
-        val keystorePath = localProperties.getProperty("KEYSTORE_PATH") ?: ""
-        val storePassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: ""
-        val keyAlias = localProperties.getProperty("KEY_ALIAS") ?: ""
-        val keyPassword = localProperties.getProperty("KEY_PASSWORD") ?: ""
+        val keystorePath = signingProp("KEYSTORE_PATH")
+        val storePassword = signingProp("KEYSTORE_PASSWORD")
+        val keyAlias = signingProp("KEY_ALIAS")
+        val keyPassword = signingProp("KEY_PASSWORD")
         if (keystorePath.isNotEmpty() && file(keystorePath).exists()) {
             signingConfigs.create("release") {
                 storeFile = file(keystorePath)
