@@ -93,6 +93,9 @@ class LocalItemDataSource @Inject constructor(
             purchaseDate = entity.purchaseDate,
             purchasePrice = entity.purchasePrice,
             usageDays = entity.usageDays,
+            reminderDate = entity.reminderDate,
+            reminderType = entity.reminderType,
+            reminderNote = entity.reminderNote,
             note = entity.note,
             tags = entity.tags,
             updatedAt = entity.updatedAt

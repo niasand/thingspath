@@ -71,3 +71,4 @@
 - 任何参与 Gson 序列化/反序列化的 data class，所属包必须 100% 覆盖在 keep 规则里，不能只靠 `model.**` 通配，新增在包根下或别的子包的类会静默漏网。
 - release 失败但 debug 成功 → 第一反应查 R8 keep 规则，而不是查网络/接口逻辑。
 - release build 默认移除 Log，定位此类问题靠 `mapping.txt` + curl 复现请求格式，别指望 logcat。
+[AI-REVIEW] Large commit detected: 336 lines added. Consider reviewing for AI Psychosis.

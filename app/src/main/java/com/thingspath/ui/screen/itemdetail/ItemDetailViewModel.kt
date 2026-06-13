@@ -63,6 +63,9 @@ class ItemDetailViewModel @Inject constructor(
                 purchaseDate = purchaseDateStr,
                 purchasePrice = item.purchasePrice.takeIf { p -> p > 0 }?.toString() ?: "",
                 usageDays = usageDaysStr,
+                reminderDate = formatPurchaseDate(item.reminderDate),
+                reminderType = item.reminderType ?: "到期提醒",
+                reminderNote = item.reminderNote ?: "",
                 note = item.note ?: "",
                 tags = item.tags,
                 imagePaths = item.imagePaths
@@ -119,6 +122,22 @@ class ItemDetailViewModel @Inject constructor(
         val days = digits.toIntOrNull() ?: 0
         val purchaseDateStr = computePurchaseDateStringFromUsageDays(days)
         _state.update { it.copy(usageDays = days.toString(), purchaseDate = purchaseDateStr) }
+    }
+
+    fun onReminderDateChange(value: String) {
+        _state.update { it.copy(reminderDate = value) }
+    }
+
+    fun onReminderTypeChange(value: String) {
+        _state.update { it.copy(reminderType = value) }
+    }
+
+    fun onReminderNoteChange(value: String) {
+        _state.update { it.copy(reminderNote = value) }
+    }
+
+    fun clearReminder() {
+        _state.update { it.copy(reminderDate = "", reminderType = "到期提醒", reminderNote = "") }
     }
 
     fun onNoteChange(value: String) {
@@ -235,6 +254,11 @@ class ItemDetailViewModel @Inject constructor(
                         purchaseDate = parsePurchaseDate(_state.value.purchaseDate),
                         purchasePrice = _state.value.purchasePrice.toDoubleOrNull() ?: 0.0,
                         usageDays = _state.value.usageDays.toIntOrNull(),
+                        reminderDate = parsePurchaseDate(_state.value.reminderDate),
+                        reminderType = _state.value.reminderType.takeIf { _state.value.reminderDate.isNotBlank() },
+                        reminderNote = _state.value.reminderNote.trim().takeIf { text ->
+                            _state.value.reminderDate.isNotBlank() && text.isNotBlank()
+                        },
                         note = _state.value.note.trim().takeIf { it.isNotBlank() },
                         tags = _state.value.tags,
                         imagePaths = _state.value.imagePaths,

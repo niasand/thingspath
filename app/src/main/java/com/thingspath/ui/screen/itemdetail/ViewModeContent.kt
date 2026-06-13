@@ -41,6 +41,22 @@ fun ViewModeContent(item: Item?) {
         }
     }
 
+    item.reminderDate?.let { reminderDate ->
+        val status = reminderStatus(reminderDate)
+        DetailField(
+            label = item.reminderType ?: "提醒",
+            value = buildString {
+                append(formatDate(reminderDate))
+                append(" · ")
+                append(status)
+                item.reminderNote?.takeIf { it.isNotBlank() }?.let { note ->
+                    append("\n")
+                    append(note)
+                }
+            }
+        )
+    }
+
     if (!item.note.isNullOrBlank()) {
         DetailField(label = "备注", value = item.note)
     }
@@ -70,6 +86,21 @@ fun ViewModeContent(item: Item?) {
     }
 
     DetailField(label = "添加日期", value = formatDate(item.createdAt))
+}
+
+private fun reminderStatus(reminderDateMillis: Long): String {
+    val cal = Calendar.getInstance()
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0)
+    cal.set(Calendar.MILLISECOND, 0)
+    val todayStart = cal.timeInMillis
+    val days = TimeUnit.MILLISECONDS.toDays(reminderDateMillis - todayStart).toInt()
+    return when {
+        days < 0 -> "已逾期 ${-days} 天"
+        days == 0 -> "今天到期"
+        else -> "还有 $days 天"
+    }
 }
 
 @Composable

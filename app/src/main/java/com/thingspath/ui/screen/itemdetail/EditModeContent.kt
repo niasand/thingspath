@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +29,10 @@ fun EditModeContent(
     onPurchaseDateChange: (String) -> Unit,
     onPurchasePriceChange: (String) -> Unit,
     onUsageDaysChange: (String) -> Unit,
+    onReminderDateChange: (String) -> Unit,
+    onReminderTypeChange: (String) -> Unit,
+    onReminderNoteChange: (String) -> Unit,
+    onClearReminder: () -> Unit,
     onNoteChange: (String) -> Unit,
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
@@ -40,6 +46,16 @@ fun EditModeContent(
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
             val selectedDate = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
             onPurchaseDateChange(selectedDate)
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+    val reminderDatePickerDialog = DatePickerDialog(
+        context,
+        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+            val selectedDate = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
+            onReminderDateChange(selectedDate)
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
@@ -104,6 +120,14 @@ fun EditModeContent(
         placeholder = { Text("例如 30") }
     )
 
+    ReminderEditor(
+        state = state,
+        onReminderDateClick = { reminderDatePickerDialog.show() },
+        onReminderTypeChange = onReminderTypeChange,
+        onReminderNoteChange = onReminderNoteChange,
+        onClearReminder = onClearReminder
+    )
+
     OutlinedTextField(
         value = state.note,
         onValueChange = onNoteChange,
@@ -160,6 +184,93 @@ fun EditModeContent(
                         }
                     )
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderEditor(
+    state: ItemDetailState,
+    onReminderDateClick: () -> Unit,
+    onReminderTypeChange: (String) -> Unit,
+    onReminderNoteChange: (String) -> Unit,
+    onClearReminder: () -> Unit
+) {
+    val reminderTypes = listOf("到期提醒", "保修提醒", "维护提醒", "补货提醒")
+    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "提醒",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = state.reminderType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("提醒类型") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                singleLine = true
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                reminderTypes.forEach { type ->
+                    DropdownMenuItem(
+                        text = { Text(type) },
+                        onClick = {
+                            onReminderTypeChange(type)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Box(modifier = Modifier.clickable { onReminderDateClick() }) {
+            OutlinedTextField(
+                value = state.reminderDate,
+                onValueChange = {},
+                label = { Text("提醒日期 (YYYY-MM-DD)") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false,
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                singleLine = true,
+                placeholder = { Text("例如 2026-12-31") },
+                trailingIcon = {
+                    Icon(Icons.Default.DateRange, contentDescription = "选择提醒日期")
+                }
+            )
+        }
+
+        OutlinedTextField(
+            value = state.reminderNote,
+            onValueChange = onReminderNoteChange,
+            label = { Text("提醒备注") },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 2,
+            placeholder = { Text("例如 滤芯更换、保修结束、药品过期") }
+        )
+
+        if (state.reminderDate.isNotBlank() || state.reminderNote.isNotBlank()) {
+            TextButton(onClick = onClearReminder) {
+                Text("清除提醒")
             }
         }
     }

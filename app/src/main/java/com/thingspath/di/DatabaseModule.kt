@@ -2,6 +2,8 @@ package com.thingspath.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.thingspath.data.local.db.ItemDao
 import com.thingspath.data.local.db.ThingsPathDatabase
 import dagger.Module
@@ -15,6 +17,14 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE items ADD COLUMN reminder_date INTEGER")
+            db.execSQL("ALTER TABLE items ADD COLUMN reminder_type TEXT")
+            db.execSQL("ALTER TABLE items ADD COLUMN reminder_note TEXT")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ThingsPathDatabase {
@@ -22,7 +32,7 @@ object DatabaseModule {
             context,
             ThingsPathDatabase::class.java,
             "thingspath.db"
-        ).build()
+        ).addMigrations(MIGRATION_1_2).build()
     }
 
     @Provides

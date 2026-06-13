@@ -100,6 +100,9 @@ class D1ApiService @Inject constructor() {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
+        reminderDate: Long?,
+        reminderType: String?,
+        reminderNote: String?,
         note: String?,
         tags: String,
         createdAt: Long,
@@ -107,9 +110,9 @@ class D1ApiService @Inject constructor() {
     ) {
         executeQuery(
             """INSERT OR REPLACE INTO items (id, name, image_paths, location, purchase_date,
-               purchase_price, usage_days, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
+               purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, createdAt, updatedAt)
         )
     }
 
@@ -135,22 +138,25 @@ class D1ApiService @Inject constructor() {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
+        reminderDate: Long?,
+        reminderType: String?,
+        reminderNote: String?,
         note: String?,
         tags: String,
         createdAt: Long,
         updatedAt: Long
     ): Long {
         val sql = if (id != null) {
-            """INSERT INTO items (id, name, image_paths, location, purchase_date, purchase_price, usage_days, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            """INSERT INTO items (id, name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         } else {
-            """INSERT INTO items (name, image_paths, location, purchase_date, purchase_price, usage_days, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            """INSERT INTO items (name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         }
         val params = if (id != null) {
-            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
+            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, createdAt, updatedAt)
         } else {
-            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, createdAt, updatedAt)
+            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, createdAt, updatedAt)
         }
         val responseBody = executeQuery(sql, params)
         val result = parseD1Result(responseBody)
@@ -165,14 +171,18 @@ class D1ApiService @Inject constructor() {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
+        reminderDate: Long?,
+        reminderType: String?,
+        reminderNote: String?,
         note: String?,
         tags: String,
         updatedAt: Long
     ): Boolean {
         val responseBody = executeQuery(
             """UPDATE items SET name = ?, image_paths = ?, location = ?, purchase_date = ?,
-               purchase_price = ?, usage_days = ?, note = ?, tags = ?, updated_at = ? WHERE id = ?""",
-            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, note, tags, updatedAt, id)
+               purchase_price = ?, usage_days = ?, reminder_date = ?, reminder_type = ?, reminder_note = ?,
+               note = ?, tags = ?, updated_at = ? WHERE id = ?""",
+            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, updatedAt, id)
         )
         val result = parseD1Result(responseBody)
         return result?.meta?.changes ?: 0 > 0
@@ -202,12 +212,26 @@ class D1ApiService @Inject constructor() {
                 purchase_date INTEGER,
                 purchase_price REAL DEFAULT 0,
                 usage_days INTEGER,
+                reminder_date INTEGER,
+                reminder_type TEXT,
+                reminder_note TEXT,
                 note TEXT,
                 tags TEXT DEFAULT '[]',
                 created_at INTEGER,
                 updated_at INTEGER
             )"""
         )
+        addColumnIfMissing("reminder_date", "INTEGER")
+        addColumnIfMissing("reminder_type", "TEXT")
+        addColumnIfMissing("reminder_note", "TEXT")
+    }
+
+    private suspend fun addColumnIfMissing(name: String, type: String) {
+        try {
+            executeQuery("ALTER TABLE items ADD COLUMN $name $type")
+        } catch (e: Exception) {
+            Log.d(TAG, "D1 column $name already exists or cannot be added")
+        }
     }
 
     @Suppress("UNCHECKED_CAST")

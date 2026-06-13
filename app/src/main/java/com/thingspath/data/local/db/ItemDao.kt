@@ -27,7 +27,8 @@ interface ItemDao {
     @Query("""
         UPDATE items SET name = :name, image_paths = :imagePaths, image_path = :imagePath,
         location = :location, purchase_date = :purchaseDate, purchase_price = :purchasePrice,
-        usage_days = :usageDays, note = :note, tags = :tags, updated_at = :updatedAt
+        usage_days = :usageDays, reminder_date = :reminderDate, reminder_type = :reminderType,
+        reminder_note = :reminderNote, note = :note, tags = :tags, updated_at = :updatedAt
         WHERE id = :id
     """)
     suspend fun updateItem(
@@ -39,6 +40,9 @@ interface ItemDao {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
+        reminderDate: Long?,
+        reminderType: String?,
+        reminderNote: String?,
         note: String?,
         tags: List<String>,
         updatedAt: Long

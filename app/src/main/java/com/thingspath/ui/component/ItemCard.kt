@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -193,6 +194,28 @@ fun ItemCard(
                     }
                 }
 
+                item.reminderDate?.let { reminderDate ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Notifications,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = colors.pinkPrimary
+                        )
+                        Text(
+                            text = "${item.reminderType ?: "提醒"} · ${formatReminderStatus(reminderDate)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.pinkPrimary,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1
+                        )
+                    }
+                }
+
                 // Compute dynamic usage days for display
                 val dynamicUsageDays = computeUsageDays(item.purchaseDate)
 
@@ -282,4 +305,19 @@ private fun formatDate(timestamp: Long): String {
     val date = Date(timestamp)
     val format = SimpleDateFormat("yyyy年M月d日", Locale.getDefault())
     return format.format(date)
+}
+
+private fun formatReminderStatus(reminderDate: Long): String {
+    val todayStart = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val days = TimeUnit.MILLISECONDS.toDays(reminderDate - todayStart).toInt()
+    return when {
+        days < 0 -> "已逾期 ${-days} 天"
+        days == 0 -> "今天到期"
+        else -> "还有 $days 天"
+    }
 }
