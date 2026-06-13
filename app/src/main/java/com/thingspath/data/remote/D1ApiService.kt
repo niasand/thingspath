@@ -106,13 +106,15 @@ class D1ApiService @Inject constructor() {
         updatedAt: Long,
         reminderDate: Long? = null,
         reminderType: String? = null,
-        reminderNote: String? = null
+        reminderNote: String? = null,
+        setName: String? = null,
+        setNote: String? = null
     ) {
         executeQuery(
             """INSERT OR REPLACE INTO items (id, name, image_paths, location, purchase_date,
-               purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, createdAt, updatedAt)
+               purchase_price, usage_days, reminder_date, reminder_type, reminder_note, set_name, set_note, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, setName, setNote, note, tags, createdAt, updatedAt)
         )
     }
 
@@ -124,8 +126,8 @@ class D1ApiService @Inject constructor() {
     suspend fun searchItems(query: String): List<Map<String, Any?>> {
         val searchPattern = "%$query%"
         val responseBody = executeQuery(
-            "SELECT * FROM items WHERE name LIKE ? OR tags LIKE ? OR location LIKE ? OR note LIKE ? ORDER BY updated_at DESC",
-            listOf(searchPattern, searchPattern, searchPattern, searchPattern)
+            "SELECT * FROM items WHERE name LIKE ? OR tags LIKE ? OR location LIKE ? OR note LIKE ? OR set_name LIKE ? OR set_note LIKE ? ORDER BY updated_at DESC",
+            listOf(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern)
         )
         return parseResults(responseBody)
     }
@@ -144,19 +146,21 @@ class D1ApiService @Inject constructor() {
         updatedAt: Long,
         reminderDate: Long? = null,
         reminderType: String? = null,
-        reminderNote: String? = null
+        reminderNote: String? = null,
+        setName: String? = null,
+        setNote: String? = null
     ): Long {
         val sql = if (id != null) {
-            """INSERT INTO items (id, name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            """INSERT INTO items (id, name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, set_name, set_note, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         } else {
-            """INSERT INTO items (name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            """INSERT INTO items (name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, set_name, set_note, note, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         }
         val params = if (id != null) {
-            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, createdAt, updatedAt)
+            listOf(id, name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, setName, setNote, note, tags, createdAt, updatedAt)
         } else {
-            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, createdAt, updatedAt)
+            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, setName, setNote, note, tags, createdAt, updatedAt)
         }
         val responseBody = executeQuery(sql, params)
         val result = parseD1Result(responseBody)
@@ -176,13 +180,15 @@ class D1ApiService @Inject constructor() {
         updatedAt: Long,
         reminderDate: Long? = null,
         reminderType: String? = null,
-        reminderNote: String? = null
+        reminderNote: String? = null,
+        setName: String? = null,
+        setNote: String? = null
     ): Boolean {
         val responseBody = executeQuery(
             """UPDATE items SET name = ?, image_paths = ?, location = ?, purchase_date = ?,
                purchase_price = ?, usage_days = ?, reminder_date = ?, reminder_type = ?, reminder_note = ?,
-               note = ?, tags = ?, updated_at = ? WHERE id = ?""",
-            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, note, tags, updatedAt, id)
+               set_name = ?, set_note = ?, note = ?, tags = ?, updated_at = ? WHERE id = ?""",
+            listOf(name, imagePaths, location, purchaseDate, purchasePrice, usageDays, reminderDate, reminderType, reminderNote, setName, setNote, note, tags, updatedAt, id)
         )
         val result = parseD1Result(responseBody)
         return result?.meta?.changes ?: 0 > 0
@@ -215,6 +221,8 @@ class D1ApiService @Inject constructor() {
                 reminder_date INTEGER,
                 reminder_type TEXT,
                 reminder_note TEXT,
+                set_name TEXT,
+                set_note TEXT,
                 note TEXT,
                 tags TEXT DEFAULT '[]',
                 created_at INTEGER,
@@ -224,6 +232,8 @@ class D1ApiService @Inject constructor() {
         addColumnIfMissing("reminder_date", "INTEGER")
         addColumnIfMissing("reminder_type", "TEXT")
         addColumnIfMissing("reminder_note", "TEXT")
+        addColumnIfMissing("set_name", "TEXT")
+        addColumnIfMissing("set_note", "TEXT")
     }
 
     private suspend fun addColumnIfMissing(name: String, type: String) {

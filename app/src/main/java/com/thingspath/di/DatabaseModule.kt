@@ -25,6 +25,13 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE items ADD COLUMN set_name TEXT")
+            db.execSQL("ALTER TABLE items ADD COLUMN set_note TEXT")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ThingsPathDatabase {
@@ -32,7 +39,7 @@ object DatabaseModule {
             context,
             ThingsPathDatabase::class.java,
             "thingspath.db"
-        ).addMigrations(MIGRATION_1_2).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 
     @Provides

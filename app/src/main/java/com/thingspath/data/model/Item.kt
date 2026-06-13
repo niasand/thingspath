@@ -12,6 +12,8 @@ data class Item(
     val reminderDate: Long? = null,
     val reminderType: String? = null,
     val reminderNote: String? = null,
+    val setName: String? = null,
+    val setNote: String? = null,
     val note: String? = null,
     val tags: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),

@@ -15,7 +15,7 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE id = :id")
     suspend fun getItemById(id: Long): ItemEntity?
 
-    @Query("SELECT * FROM items WHERE name LIKE :query OR tags LIKE :query OR location LIKE :query OR note LIKE :query ORDER BY updated_at DESC")
+    @Query("SELECT * FROM items WHERE name LIKE :query OR tags LIKE :query OR location LIKE :query OR note LIKE :query OR set_name LIKE :query OR set_note LIKE :query ORDER BY updated_at DESC")
     fun searchItems(query: String): Flow<List<ItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -28,7 +28,8 @@ interface ItemDao {
         UPDATE items SET name = :name, image_paths = :imagePaths, image_path = :imagePath,
         location = :location, purchase_date = :purchaseDate, purchase_price = :purchasePrice,
         usage_days = :usageDays, reminder_date = :reminderDate, reminder_type = :reminderType,
-        reminder_note = :reminderNote, note = :note, tags = :tags, updated_at = :updatedAt
+        reminder_note = :reminderNote, set_name = :setName, set_note = :setNote,
+        note = :note, tags = :tags, updated_at = :updatedAt
         WHERE id = :id
     """)
     suspend fun updateItem(
@@ -43,6 +44,8 @@ interface ItemDao {
         reminderDate: Long?,
         reminderType: String?,
         reminderNote: String?,
+        setName: String?,
+        setNote: String?,
         note: String?,
         tags: List<String>,
         updatedAt: Long

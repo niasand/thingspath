@@ -4,8 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import com.thingspath.data.remote.repository.R2ImageRepository
 import com.thingspath.domain.usecase.*
 import com.thingspath.util.MainDispatcherRule
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 
@@ -15,6 +17,7 @@ class ItemDetailViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    private val getItemsUseCase: GetItemsUseCase = mockk(relaxed = true)
     private val getItemByIdUseCase: GetItemByIdUseCase = mockk(relaxed = true)
     private val updateItemUseCase: UpdateItemUseCase = mockk(relaxed = true)
     private val deleteItemUseCase: DeleteItemUseCase = mockk(relaxed = true)
@@ -25,10 +28,12 @@ class ItemDetailViewModelTest {
     fun `viewModel initialization with valid itemId should not crash`() {
         // Simulate navigation argument passing a Long
         val savedStateHandle = SavedStateHandle(mapOf("itemId" to 123L))
+        every { getItemsUseCase() } returns flowOf(emptyList())
 
         // This should not throw ClassCastException
         val viewModel = ItemDetailViewModel(
             savedStateHandle = savedStateHandle,
+            getItemsUseCase = getItemsUseCase,
             getItemByIdUseCase = getItemByIdUseCase,
             updateItemUseCase = updateItemUseCase,
             deleteItemUseCase = deleteItemUseCase,

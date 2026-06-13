@@ -190,6 +190,8 @@ fun ItemDetailScreen(
                 onReminderTypeChange = { viewModel.onReminderTypeChange(it) },
                 onReminderNoteChange = { viewModel.onReminderNoteChange(it) },
                 onClearReminder = { viewModel.clearReminder() },
+                onSetNameChange = { viewModel.onSetNameChange(it) },
+                onSetNoteChange = { viewModel.onSetNoteChange(it) },
                 onNoteChange = { viewModel.onNoteChange(it) },
                 onTagInputChange = { viewModel.onTagInputChange(it) },
                 onAddTag = { viewModel.addTag() },
@@ -240,6 +242,8 @@ fun ItemDetailContent(
     onReminderTypeChange: (String) -> Unit,
     onReminderNoteChange: (String) -> Unit,
     onClearReminder: () -> Unit,
+    onSetNameChange: (String) -> Unit,
+    onSetNoteChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
@@ -294,13 +298,15 @@ fun ItemDetailContent(
                 onReminderTypeChange = onReminderTypeChange,
                 onReminderNoteChange = onReminderNoteChange,
                 onClearReminder = onClearReminder,
+                onSetNameChange = onSetNameChange,
+                onSetNoteChange = onSetNoteChange,
                 onNoteChange = onNoteChange,
                 onTagInputChange = onTagInputChange,
                 onAddTag = onAddTag,
                 onRemoveTag = onRemoveTag
             )
         } else {
-            ViewModeContent(item = state.item)
+            ViewModeContent(item = state.item, relatedItems = state.relatedItems)
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -210,6 +211,28 @@ fun ItemCard(
                             text = "${item.reminderType ?: "提醒"} · ${formatReminderStatus(reminderDate)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.pinkPrimary,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                item.setName?.takeIf { it.isNotBlank() }?.let { setName ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Category,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = colors.purplePrimary
+                        )
+                        Text(
+                            text = "套装 · $setName",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.purplePrimary,
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 1
                         )

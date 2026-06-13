@@ -33,6 +33,8 @@ fun EditModeContent(
     onReminderTypeChange: (String) -> Unit,
     onReminderNoteChange: (String) -> Unit,
     onClearReminder: () -> Unit,
+    onSetNameChange: (String) -> Unit,
+    onSetNoteChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onTagInputChange: (String) -> Unit,
     onAddTag: () -> Unit,
@@ -128,6 +130,12 @@ fun EditModeContent(
         onClearReminder = onClearReminder
     )
 
+    SetEditor(
+        state = state,
+        onSetNameChange = onSetNameChange,
+        onSetNoteChange = onSetNoteChange
+    )
+
     OutlinedTextField(
         value = state.note,
         onValueChange = onNoteChange,
@@ -186,6 +194,39 @@ fun EditModeContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SetEditor(
+    state: ItemDetailState,
+    onSetNameChange: (String) -> Unit,
+    onSetNoteChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "套装",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        OutlinedTextField(
+            value = state.setName,
+            onValueChange = onSetNameChange,
+            label = { Text("套装名称") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("例如 相机包、证件包、电脑套装") }
+        )
+
+        OutlinedTextField(
+            value = state.setNote,
+            onValueChange = onSetNoteChange,
+            label = { Text("套装备注") },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 2,
+            placeholder = { Text("例如 主机、配件、证件放在同一个收纳包") }
+        )
     }
 }
 

@@ -42,7 +42,9 @@ class RemoteItemDataSource @Inject constructor(
         updatedAt: Long,
         reminderDate: Long? = null,
         reminderType: String? = null,
-        reminderNote: String? = null
+        reminderNote: String? = null,
+        setName: String? = null,
+        setNote: String? = null
     ): Long {
         return d1ApiService.insertItem(
             id = id,
@@ -55,6 +57,8 @@ class RemoteItemDataSource @Inject constructor(
             reminderDate = reminderDate,
             reminderType = reminderType,
             reminderNote = reminderNote,
+            setName = setName,
+            setNote = setNote,
             note = note,
             tags = tags,
             createdAt = createdAt,
@@ -78,7 +82,9 @@ class RemoteItemDataSource @Inject constructor(
         updatedAt: Long,
         reminderDate: Long? = null,
         reminderType: String? = null,
-        reminderNote: String? = null
+        reminderNote: String? = null,
+        setName: String? = null,
+        setNote: String? = null
     ): Boolean {
         return d1ApiService.updateItem(
             id = id,
@@ -91,6 +97,8 @@ class RemoteItemDataSource @Inject constructor(
             reminderDate = reminderDate,
             reminderType = reminderType,
             reminderNote = reminderNote,
+            setName = setName,
+            setNote = setNote,
             note = note,
             tags = tags,
             updatedAt = updatedAt
@@ -114,7 +122,9 @@ class RemoteItemDataSource @Inject constructor(
         updatedAt: Long,
         reminderDate: Long? = null,
         reminderType: String? = null,
-        reminderNote: String? = null
+        reminderNote: String? = null,
+        setName: String? = null,
+        setNote: String? = null
     ) {
         d1ApiService.upsertItem(
             id = id,
@@ -127,6 +137,8 @@ class RemoteItemDataSource @Inject constructor(
             reminderDate = reminderDate,
             reminderType = reminderType,
             reminderNote = reminderNote,
+            setName = setName,
+            setNote = setNote,
             note = note,
             tags = tags,
             createdAt = createdAt,
@@ -180,6 +192,8 @@ class RemoteItemDataSource @Inject constructor(
             reminderDate = (row["reminder_date"] as? Number)?.toLong(),
             reminderType = row["reminder_type"] as? String,
             reminderNote = row["reminder_note"] as? String,
+            setName = row["set_name"] as? String,
+            setNote = row["set_note"] as? String,
             note = row["note"] as? String,
             tags = parseJsonField(row["tags"]),
             createdAt = (row["created_at"] as? Number)?.toLong() ?: System.currentTimeMillis(),

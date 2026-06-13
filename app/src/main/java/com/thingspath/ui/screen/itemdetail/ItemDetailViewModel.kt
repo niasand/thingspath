@@ -23,6 +23,7 @@ import java.io.File
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val getItemsUseCase: GetItemsUseCase,
     private val getItemByIdUseCase: GetItemByIdUseCase,
     private val updateItemUseCase: UpdateItemUseCase,
     private val deleteItemUseCase: DeleteItemUseCase,
@@ -46,6 +47,7 @@ class ItemDetailViewModel @Inject constructor(
             }
             // 后台异步刷新，确保数据新鲜
             loadItem(showLoading = cached == null)
+            observeRelatedItems()
         }
     }
 
@@ -66,10 +68,27 @@ class ItemDetailViewModel @Inject constructor(
                 reminderDate = formatPurchaseDate(item.reminderDate),
                 reminderType = item.reminderType ?: "到期提醒",
                 reminderNote = item.reminderNote ?: "",
+                setName = item.setName ?: "",
+                setNote = item.setNote ?: "",
                 note = item.note ?: "",
                 tags = item.tags,
                 imagePaths = item.imagePaths
             )
+        }
+    }
+
+    private fun observeRelatedItems() {
+        viewModelScope.launch {
+            getItemsUseCase().collect { items ->
+                val current = _state.value.item ?: return@collect
+                val setName = current.setName?.trim().orEmpty()
+                val related = if (setName.isBlank()) {
+                    emptyList()
+                } else {
+                    items.filter { it.id != current.id && it.setName?.trim() == setName }
+                }
+                _state.update { it.copy(relatedItems = related) }
+            }
         }
     }
 
@@ -138,6 +157,14 @@ class ItemDetailViewModel @Inject constructor(
 
     fun clearReminder() {
         _state.update { it.copy(reminderDate = "", reminderType = "到期提醒", reminderNote = "") }
+    }
+
+    fun onSetNameChange(value: String) {
+        _state.update { it.copy(setName = value) }
+    }
+
+    fun onSetNoteChange(value: String) {
+        _state.update { it.copy(setNote = value) }
     }
 
     fun onNoteChange(value: String) {
@@ -258,6 +285,10 @@ class ItemDetailViewModel @Inject constructor(
                         reminderType = _state.value.reminderType.takeIf { _state.value.reminderDate.isNotBlank() },
                         reminderNote = _state.value.reminderNote.trim().takeIf { text ->
                             _state.value.reminderDate.isNotBlank() && text.isNotBlank()
+                        },
+                        setName = _state.value.setName.trim().takeIf { it.isNotBlank() },
+                        setNote = _state.value.setNote.trim().takeIf { text ->
+                            _state.value.setName.isNotBlank() && text.isNotBlank()
                         },
                         note = _state.value.note.trim().takeIf { it.isNotBlank() },
                         tags = _state.value.tags,

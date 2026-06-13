@@ -12,7 +12,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 @Composable
-fun ViewModeContent(item: Item?) {
+fun ViewModeContent(item: Item?, relatedItems: List<Item> = emptyList()) {
     item ?: return
     val usageDays = remember(item.purchaseDate) {
         item.purchaseDate?.let { calculateUsageDaysFromPurchaseDate(it) }
@@ -55,6 +55,36 @@ fun ViewModeContent(item: Item?) {
                 }
             }
         )
+    }
+
+    item.setName?.takeIf { it.isNotBlank() }?.let { setName ->
+        DetailField(
+            label = "套装",
+            value = buildString {
+                append(setName)
+                item.setNote?.takeIf { it.isNotBlank() }?.let { note ->
+                    append("\n")
+                    append(note)
+                }
+            }
+        )
+
+        if (relatedItems.isNotEmpty()) {
+            Column {
+                Text(
+                    text = "同套装物品",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                relatedItems.forEach { related ->
+                    Text(
+                        text = related.name,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
     }
 
     if (!item.note.isNullOrBlank()) {
