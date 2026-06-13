@@ -12,5 +12,9 @@ cache/
 # Logs
 *.log
 
+# Runtime (daemon PID / socket are local process state)
+daemon.pid
+daemon.sock
+
 # Hook markers
 .dirty
