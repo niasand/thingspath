@@ -40,11 +40,33 @@ android {
         buildConfigField("String", "D1_API_TOKEN", "\"${localProperties.getProperty("D1_API_TOKEN", "")}\"")
     }
 
+    // Release signing: read keystore from local.properties; fall back to debug
+    // signing when missing so CI / fresh clones can still build.
+    // Why: previously release reused debug signing — every release build shared
+    // the debug certificate, which can't be used for Play Store uploads and
+    // triggers "signature conflict" warnings on overwrite installs.
+    val releaseSigningConfig = run {
+        val keystorePath = localProperties.getProperty("KEYSTORE_PATH") ?: ""
+        val storePassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: ""
+        val keyAlias = localProperties.getProperty("KEY_ALIAS") ?: ""
+        val keyPassword = localProperties.getProperty("KEY_PASSWORD") ?: ""
+        if (keystorePath.isNotEmpty() && file(keystorePath).exists()) {
+            signingConfigs.create("release") {
+                storeFile = file(keystorePath)
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        } else {
+            null
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = releaseSigningConfig ?: signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
