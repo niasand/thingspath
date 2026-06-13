@@ -100,13 +100,13 @@ class D1ApiService @Inject constructor() {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
-        reminderDate: Long?,
-        reminderType: String?,
-        reminderNote: String?,
         note: String?,
         tags: String,
         createdAt: Long,
-        updatedAt: Long
+        updatedAt: Long,
+        reminderDate: Long? = null,
+        reminderType: String? = null,
+        reminderNote: String? = null
     ) {
         executeQuery(
             """INSERT OR REPLACE INTO items (id, name, image_paths, location, purchase_date,
@@ -138,13 +138,13 @@ class D1ApiService @Inject constructor() {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
-        reminderDate: Long?,
-        reminderType: String?,
-        reminderNote: String?,
         note: String?,
         tags: String,
         createdAt: Long,
-        updatedAt: Long
+        updatedAt: Long,
+        reminderDate: Long? = null,
+        reminderType: String? = null,
+        reminderNote: String? = null
     ): Long {
         val sql = if (id != null) {
             """INSERT INTO items (id, name, image_paths, location, purchase_date, purchase_price, usage_days, reminder_date, reminder_type, reminder_note, note, tags, created_at, updated_at)
@@ -171,12 +171,12 @@ class D1ApiService @Inject constructor() {
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
-        reminderDate: Long?,
-        reminderType: String?,
-        reminderNote: String?,
         note: String?,
         tags: String,
-        updatedAt: Long
+        updatedAt: Long,
+        reminderDate: Long? = null,
+        reminderType: String? = null,
+        reminderNote: String? = null
     ): Boolean {
         val responseBody = executeQuery(
             """UPDATE items SET name = ?, image_paths = ?, location = ?, purchase_date = ?,

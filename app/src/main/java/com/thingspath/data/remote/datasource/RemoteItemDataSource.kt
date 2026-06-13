@@ -36,13 +36,13 @@ class RemoteItemDataSource @Inject constructor(
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
-        reminderDate: Long?,
-        reminderType: String?,
-        reminderNote: String?,
         note: String?,
         tags: String,
         createdAt: Long,
-        updatedAt: Long
+        updatedAt: Long,
+        reminderDate: Long? = null,
+        reminderType: String? = null,
+        reminderNote: String? = null
     ): Long {
         return d1ApiService.insertItem(
             id = id,
@@ -73,12 +73,12 @@ class RemoteItemDataSource @Inject constructor(
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
-        reminderDate: Long?,
-        reminderType: String?,
-        reminderNote: String?,
         note: String?,
         tags: String,
-        updatedAt: Long
+        updatedAt: Long,
+        reminderDate: Long? = null,
+        reminderType: String? = null,
+        reminderNote: String? = null
     ): Boolean {
         return d1ApiService.updateItem(
             id = id,
@@ -108,13 +108,13 @@ class RemoteItemDataSource @Inject constructor(
         purchaseDate: Long?,
         purchasePrice: Double,
         usageDays: Int?,
-        reminderDate: Long?,
-        reminderType: String?,
-        reminderNote: String?,
         note: String?,
         tags: String,
         createdAt: Long,
-        updatedAt: Long
+        updatedAt: Long,
+        reminderDate: Long? = null,
+        reminderType: String? = null,
+        reminderNote: String? = null
     ) {
         d1ApiService.upsertItem(
             id = id,
