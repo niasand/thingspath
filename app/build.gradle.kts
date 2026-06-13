@@ -79,9 +79,15 @@ android {
         }
     }
 
+    // Fixed APK filenames per variant — stable across builds so CI artifact
+    // upload and GitHub Release paths match every time.
+    // Why: previously every variant was renamed to "thingspath.apk", which (1)
+    // collided between debug/release and (2) didn't match the workflow's
+    // expected *-unsigned.apk / *-signed.apk paths, so CI uploads silently failed.
     applicationVariants.all {
+        val suffix = if (buildType.name == "release") "signed" else "unsigned"
         outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "thingspath.apk"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "thingspath-$suffix.apk"
         }
     }
 
