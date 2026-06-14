@@ -107,3 +107,4 @@
 - 云凭据会过期/被轮换；编译进 BuildConfig 的凭据失效后用户只能重装新版修复。可轮换凭据宜走服务端中转或可热更新配置，而非编译期常量。
 - 旁证：macOS Python 缺根证书时，`urllib + _create_unverified_context()` 访问 r2.dev 会诡异地返回 403（而非 SSL 错误），用 curl（系统钥匙串）复测才是干净的 200——验证公开 URL 别用 unverified SSL。
 [AI-REVIEW] Large commit detected: 309 lines added. Consider reviewing for AI Psychosis.
+[AI-REVIEW] Large commit detected: 310 lines added. Consider reviewing for AI Psychosis.
