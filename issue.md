@@ -72,3 +72,38 @@
 - release 失败但 debug 成功 → 第一反应查 R8 keep 规则，而不是查网络/接口逻辑。
 - release build 默认移除 Log，定位此类问题靠 `mapping.txt` + curl 复现请求格式，别指望 logcat。
 [AI-REVIEW] Large commit detected: 336 lines added. Consider reviewing for AI Psychosis.
+[AI-REVIEW] Large commit detected: 232 lines added. Consider reviewing for AI Psychosis.
+[AI-REVIEW] Large commit detected: 234 lines added. Consider reviewing for AI Psychosis.
+
+## [2026-06-14] R2 图片上传失败：API Token 凭据失效（401 Unauthorized）
+
+**现象**
+- 添加图片提示"图片上传失败，请重试"，所有图片无法上传，debug/release 包均失败。
+
+**根因**
+- `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` 这对凭据已失效（被轮换/禁用）。所有 PUT 被 R2 以 **401 Unauthorized** 拒绝（401 = 认证失败，非 403 权限不足）。
+- 三重对照锁定，排除其他可能：
+  - 同账号 **D1（Bearer token）正常**（`success:true, cnt:7`）→ 排除账号/网络/TLS。
+  - **boto3（工业级独立 SigV4）用相同凭据也 401** → 排除项目签名算法 bug。
+  - bucket 内仍有历史文件 `items/3d950a83-...jpg`（curl public GET 200）→ 上传曾成功，凭据是后来失效。
+- 错误被吞没：`UploadImageUseCase` 失败只回传 null，`R2ImageRepositoryTest` 是 mock 测试（mock 掉网络，永远测不到真实 401），所以这个 bug 一直没被测试发现。
+
+**修复方案**
+- Cloudflare R2 → Manage R2 API Tokens → 新建 Object Read & Write token（bucket=thingspath），拿新 Access Key/Secret。
+- 更新 `local.properties` 两个 R2 凭据字段（已备份 `local.properties.bak`）。
+- 重新构建并安装 APK（`BuildConfig.R2_*` 是编译期常量，必须重装新版才生效）。
+
+**涉及文件**
+- `local.properties`（R2 凭据两行；该文件 gitignore，不进仓库）
+
+**验证证据**
+- 旧凭据：手写 SigV4 PUT 401、boto3 PUT/LIST 401。
+- 新凭据：boto3 PUT 200（ETag 返回）、LIST 200、DELETE 200、curl GET public URL 200。
+
+**教训（云凭据失效 + 错误吞没通用铁律）**
+- 对接云存储/第三方 API 的"无法上传/无法连接"类 bug，第一反应用成熟工具（boto3/awscli）直连复现，区分"凭据失效(401)"与"代码 bug"：工业级工具也失败 = 凭据问题；工业级工具成功 = 自己代码 bug。比手写签名复现更可靠。
+- 错误吞没是 bug 温床：网络层失败只回传 null + 通用文案，会把"凭据失效""403""超时"全压成一个"上传失败"。失败路径必须保留真实 HTTP code / 错误体（至少写日志）。
+- 单元测试 mock 掉网络层 = 永远测不到真实认证失败。云对接关键路径要有至少一个真实集成验证（本地脚本 / 集成测试），mock 测试只验证逻辑分支。
+- 云凭据会过期/被轮换；编译进 BuildConfig 的凭据失效后用户只能重装新版修复。可轮换凭据宜走服务端中转或可热更新配置，而非编译期常量。
+- 旁证：macOS Python 缺根证书时，`urllib + _create_unverified_context()` 访问 r2.dev 会诡异地返回 403（而非 SSL 错误），用 curl（系统钥匙串）复测才是干净的 200——验证公开 URL 别用 unverified SSL。
+[AI-REVIEW] Large commit detected: 309 lines added. Consider reviewing for AI Psychosis.

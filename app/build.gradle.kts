@@ -14,6 +14,17 @@ if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
 
+/**
+ * Read a build secret: prefer the environment variable (CI injects via GitHub
+ * Secrets), fall back to local.properties (local dev), empty string if neither.
+ * Why: CI has no local.properties, so cloud-service credentials (R2/D1) and the
+ * release keystore must come from env vars; without this CI-built APKs ship with
+ * empty credentials and every cloud call (image upload, D1 sync) silently fails.
+ */
+fun secretProp(key: String): String =
+    System.getenv(key)?.takeIf { it.isNotEmpty() }
+        ?: localProperties.getProperty(key, "")
+
 android {
     namespace = "com.thingspath"
     compileSdk = 35
@@ -30,14 +41,14 @@ android {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "R2_ACCOUNT_ID", "\"${localProperties.getProperty("R2_ACCOUNT_ID", "")}\"")
-        buildConfigField("String", "R2_ACCESS_KEY_ID", "\"${localProperties.getProperty("R2_ACCESS_KEY_ID", "")}\"")
-        buildConfigField("String", "R2_SECRET_ACCESS_KEY", "\"${localProperties.getProperty("R2_SECRET_ACCESS_KEY", "")}\"")
-        buildConfigField("String", "R2_BUCKET_NAME", "\"${localProperties.getProperty("R2_BUCKET_NAME", "")}\"")
-        buildConfigField("String", "R2_PUBLIC_URL", "\"${localProperties.getProperty("R2_PUBLIC_URL", "")}\"")
-        buildConfigField("String", "D1_ACCOUNT_ID", "\"${localProperties.getProperty("D1_ACCOUNT_ID", "")}\"")
-        buildConfigField("String", "D1_DATABASE_ID", "\"${localProperties.getProperty("D1_DATABASE_ID", "")}\"")
-        buildConfigField("String", "D1_API_TOKEN", "\"${localProperties.getProperty("D1_API_TOKEN", "")}\"")
+        buildConfigField("String", "R2_ACCOUNT_ID", "\"${secretProp("R2_ACCOUNT_ID")}\"")
+        buildConfigField("String", "R2_ACCESS_KEY_ID", "\"${secretProp("R2_ACCESS_KEY_ID")}\"")
+        buildConfigField("String", "R2_SECRET_ACCESS_KEY", "\"${secretProp("R2_SECRET_ACCESS_KEY")}\"")
+        buildConfigField("String", "R2_BUCKET_NAME", "\"${secretProp("R2_BUCKET_NAME")}\"")
+        buildConfigField("String", "R2_PUBLIC_URL", "\"${secretProp("R2_PUBLIC_URL")}\"")
+        buildConfigField("String", "D1_ACCOUNT_ID", "\"${secretProp("D1_ACCOUNT_ID")}\"")
+        buildConfigField("String", "D1_DATABASE_ID", "\"${secretProp("D1_DATABASE_ID")}\"")
+        buildConfigField("String", "D1_API_TOKEN", "\"${secretProp("D1_API_TOKEN")}\"")
     }
 
     // Release signing: read keystore from local.properties (local dev) OR
@@ -46,15 +57,11 @@ android {
     // Why: previously release reused debug signing — every release build shared
     // the debug certificate, which can't be used for Play Store uploads and
     // triggers "signature conflict" warnings on overwrite installs.
-    fun signingProp(key: String): String =
-        System.getenv(key)?.takeIf { it.isNotEmpty() }
-            ?: localProperties.getProperty(key, "")
-
     val releaseSigningConfig = run {
-        val keystorePath = signingProp("KEYSTORE_PATH")
-        val storePassword = signingProp("KEYSTORE_PASSWORD")
-        val keyAlias = signingProp("KEY_ALIAS")
-        val keyPassword = signingProp("KEY_PASSWORD")
+        val keystorePath = secretProp("KEYSTORE_PATH")
+        val storePassword = secretProp("KEYSTORE_PASSWORD")
+        val keyAlias = secretProp("KEY_ALIAS")
+        val keyPassword = secretProp("KEY_PASSWORD")
         if (keystorePath.isNotEmpty() && file(keystorePath).exists()) {
             signingConfigs.create("release") {
                 storeFile = file(keystorePath)
